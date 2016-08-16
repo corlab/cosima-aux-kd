@@ -1,5 +1,5 @@
-#ifndef COMAN_SIM_HPP
-#define COMAN_SIM_HPP
+#ifndef FORWARD_KINEMATICS_HPP
+#define FORWARD_KINEMATICS_HPP
 
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>

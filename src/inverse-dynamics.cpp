@@ -2,69 +2,73 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
-#include "forward-kinematics.hpp"
+#include "inverse-dynamics.hpp"
 
 using namespace cosima;
 using namespace RTT;
 using namespace RTT::os;
 using namespace Eigen;
 
-ForwardKinematics::ForwardKinematics(const std::string &name) :
-		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), jacobian_Port(
-				"jacobian"), jacobianDot_Port("jacobianDot"), position_Port(
-				"position"), velocity_Port("velocity"), jointFB_Port("jointFB") {
+InverseDynamics::InverseDynamics(const std::string &name) :
+		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), inertia_Port(
+				"inertia"), h_Port("hVector"), jointFB_Port("jointFB"), gravity_vector(
+				0., 0., -9.81), robotInertia_Port("robotInertia"), robotInertia_Flow(
+				RTT::NoData), useRobotInertia(false) {
 
-	this->addOperation("loadURDFAndSRDF", &ForwardKinematics::loadURDFAndSRDF,
+	this->addOperation("loadURDFAndSRDF", &InverseDynamics::loadURDFAndSRDF,
 			this, RTT::ClientThread);
 
 	this->addOperation("getKinematicChainNames",
-			&ForwardKinematics::getKinematicChainNames, this,
-			RTT::ClientThread);
+			&InverseDynamics::getKinematicChainNames, this, RTT::ClientThread);
 
-	this->ports()->addPort(jacobian_Port).doc("Sending calculated jacobian.");
+	this->ports()->addPort(inertia_Port).doc("Sending inertia.");
 
-	this->ports()->addPort(jacobianDot_Port).doc(
-			"Sending calculated jacobian dot.");
-
-	this->ports()->addPort(position_Port).doc(
-			"Sending calculated cartesian position.");
-
-	this->ports()->addPort(velocity_Port).doc(
-			"Sending calculated cartesian velocity.");
+	this->ports()->addPort(h_Port).doc(
+			"Sending calculated h vector containing Coriolis plus Gravity.");
 
 	this->ports()->addPort(jointFB_Port).doc("Receiving joint feedback.");
 
+	this->addOperation("useRobotInertia", &InverseDynamics::useRobotInertia_func,
+			this, RTT::OwnThread).doc("Use the inerati provided by the robot.").arg(
+			"useRobotInertia", "use the inertia from the robot or not.");
+
 }
 
-void ForwardKinematics::updateHook() {
+void InverseDynamics::useRobotInertia_func(bool useRobotInertia) {
+	this->useRobotInertia = useRobotInertia;
+}
+
+void InverseDynamics::updateHook() {
 
 	jointFB_Flow = jointFB_Port.read(jointFB);
 	if (jointFB_Flow == RTT::NewData) {
 		calculateKinematics(jointFB);
 	}
 
+	if (useRobotInertia) {
+		robotInertia_Flow = robotInertia_Port.read(M);
+		if (robotInertia_Flow != RTT::NoData) {
+			inertia_Port.write(M);
+		}
+	}
+
 	if (jointFB_Flow != RTT::NoData) {
-
-		jacobian_Port.write(jac_);
-		jacobianDot_Port.write(jac_dot_);
-
-		position_Port.write(cartFrame);
-//		RTT::log(RTT::Error) << "Cart. Pos: " << cartFrame << RTT::endlog();
-
-		velocity_Port.write(velFrame);
-
+		if (!useRobotInertia) {
+			inertia_Port.write(M);
+		}
+		h_Port.write(h.cast<float>());
 	}
 }
 
-bool ForwardKinematics::startHook() {
+bool InverseDynamics::startHook() {
 	return _models_loaded;
 }
 
-bool ForwardKinematics::configureHook() {
+bool InverseDynamics::configureHook() {
 	return true;
 }
 
-std::vector<std::string> ForwardKinematics::getKinematicChainNames() {
+std::vector<std::string> InverseDynamics::getKinematicChainNames() {
 	std::vector<std::string> names;
 	for (unsigned int i = 0; i < _xbotcore_model.get_chain_names().size();
 			++i) {
@@ -73,8 +77,8 @@ std::vector<std::string> ForwardKinematics::getKinematicChainNames() {
 	return names;
 }
 
-void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
-	// Needs to be done in non-real-time only!
+void InverseDynamics::selectKinematicChain(const std::string& chainName) {
+// Needs to be done in non-real-time only!
 
 	std::vector<std::string> enabled_joints_in_chain;
 	_xbotcore_model.get_enabled_joints_in_chain(chainName,
@@ -83,7 +87,7 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 	RTT::log(RTT::Warning) << "Size of enabled joints: "
 			<< enabled_joints_in_chain.size() << RTT::endlog();
 
-	// TODO do not hardcode this!
+// TODO do not hardcode this!
 	if (!p.initTreeAndChainFromURDFString(xml_string, "lwr_arm_base_link",
 			"lwr_arm_7_link", robot_tree, activeKDLChain)) {
 		log(Error) << "[ DLW " << this->getName()
@@ -98,37 +102,28 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 			<< robot_tree.getNrOfJoints() << ", robot_tree segments: "
 			<< robot_tree.getNrOfSegments() << endlog();
 
-//	robot_tree.getChain(enabled_joints_in_chain[0],
-//			enabled_joints_in_chain[enabled_joints_in_chain.size() - 1],
-//			activeKDLChain);
-
 	log(Info) << "[" << this->getName() << "] " << " activeKDLChain joints: "
 			<< activeKDLChain.getNrOfJoints() << ", activeKDLChain segments: "
 			<< activeKDLChain.getNrOfSegments() << RTT::endlog();
 
-	jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(activeKDLChain));
-	jnt_to_jac_dot_solver.reset(
-			new KDL::ChainJntToJacDotSolver(activeKDLChain));
-	jnt_to_cart_pos_solver.reset(
-			new KDL::ChainFkSolverPos_recursive(activeKDLChain));
-	jnt_to_cart_vel_solver.reset(
-			new KDL::ChainFkSolverVel_recursive(activeKDLChain));
+	id_dyn_solver.reset(new KDL::ChainDynParam(activeKDLChain, gravity_vector));
 
 	jntPosConfigPlusJntVelConfig_q.resize(activeKDLChain.getNrOfJoints());
-	jac_.resize(activeKDLChain.getNrOfJoints());
-	jacobian_Port.setDataSample(jac_);
 
-	jac_dot_.resize(activeKDLChain.getNrOfJoints());
-	jacobianDot_Port.setDataSample(jac_dot_);
+	M.resize(activeKDLChain.getNrOfJoints());
+	inertia_Port.setDataSample(M);
 
-	position_Port.setDataSample(cartFrame);
-	velocity_Port.setDataSample(velFrame);
+	h.resize(activeKDLChain.getNrOfJoints());
+	h_Port.setDataSample(h.cast<float>());
+
+	C_.resize(activeKDLChain.getNrOfJoints());
+	G_.resize(activeKDLChain.getNrOfJoints());
 
 	jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
 	jointFB.angles.fill(0);
 }
 
-bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
+bool InverseDynamics::loadURDFAndSRDF(const std::string &URDF_path,
 		const std::string &SRDF_path) {
 	if (!_models_loaded) {
 		std::string _urdf_path = URDF_path;
@@ -181,7 +176,7 @@ bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
 	return _models_loaded;
 }
 
-void ForwardKinematics::calculateKinematics(
+void InverseDynamics::calculateKinematics(
 		const rstrt::robot::JointState& jointState) {
 
 	jntPosConfigPlusJntVelConfig_q.q.data = jointState.angles.cast<double>();
@@ -189,34 +184,15 @@ void ForwardKinematics::calculateKinematics(
 			jointState.velocities.cast<double>();
 
 	/* ### execute solver for Jacobian based on velocities */
-	jnt_to_jac_solver->JntToJac(jntPosConfigPlusJntVelConfig_q.q, jac_,
-			activeKDLChain.getNrOfSegments());
+	if (!useRobotInertia) {
+		id_dyn_solver->JntToMass(jntPosConfigPlusJntVelConfig_q.q, M);
+	}
+	id_dyn_solver->JntToGravity(jntPosConfigPlusJntVelConfig_q.q, G_);
+	id_dyn_solver->JntToCoriolis(jntPosConfigPlusJntVelConfig_q.q,
+			jntPosConfigPlusJntVelConfig_q.qdot, C_);
 
-//	KDL::SegmentMap::const_iterator it;
-//	for (it = robot_tree.getSegments().begin();
-//			it != robot_tree.getSegments().end(); it++) {
-//		RTT::log(RTT::Error) << "Parsed Joints in KDL-Tree " << it->first
-//				<< endlog();
-//	}
-
-//	RTT::log(RTT::Error) << "activeKDLChain: " << activeKDLChain.getNrOfJoints()
-//			<< ", " << activeKDLChain.getNrOfSegments() << RTT::endlog();
-//	RTT::log(RTT::Warning) << "getNrOfSegments: "
-//			<< activeKDLChain.getNrOfSegments() << RTT::endlog();
-//	RTT::log(RTT::Warning) << "Jac: " << jac_.data << RTT::endlog();
-
-	jnt_to_jac_dot_solver->JntToJacDot(jntPosConfigPlusJntVelConfig_q, jac_dot_,
-			activeKDLChain.getNrOfSegments());
-
-	// jnt to cart pos
-	jnt_to_cart_pos_solver->JntToCart(jntPosConfigPlusJntVelConfig_q.q,
-			cartFrame, activeKDLChain.getNrOfSegments());
-	jnt_to_cart_vel_solver->JntToCart(jntPosConfigPlusJntVelConfig_q, velFrame,
-			activeKDLChain.getNrOfSegments());
-
+	h = C_.data + G_.data;
 }
 
-ORO_CREATE_COMPONENT_LIBRARY()
-//ORO_CREATE_COMPONENT(cosima::ForwardKinematics)
-ORO_LIST_COMPONENT_TYPE(cosima::ForwardKinematics)
+ORO_LIST_COMPONENT_TYPE(cosima::InverseDynamics)
 

@@ -62,7 +62,7 @@ include_directories(
     ${orocos_kdl_INCLUDE_DIRS}
 )
 
-orocos_component(${PROJECT_NAME} src/forward-kinematics.cpp src/KDLParser.cpp)
+orocos_component(${PROJECT_NAME} src/forward-kinematics.cpp src/KDLParser.cpp src/inverse-dynamics.cpp)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS RTT_COMPONENT)
 
 target_link_libraries(${PROJECT_NAME}
@@ -77,4 +77,4 @@ target_link_libraries(${PROJECT_NAME}
    ${orocos_kdl_LIBRARIES}
 )
 
-orocos_generate_package(INCLUDE_DIRS include src/KDLParser.hpp)
+orocos_generate_package(INCLUDE_DIRS include src/KDLParser.hpp src/inverse-dynamics.hpp src/forward-kinematics.hpp)
