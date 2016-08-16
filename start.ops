@@ -1,0 +1,49 @@
+import("eigen_typekit")
+import("kdl_typekit")
+import("rst-rt_typekit")
+
+import("rtt_gazebo_embedded")
+import("rtt-gazebo-robot-sim")
+
+import("cosima-aux-kd")
+
+loadComponent("gazebo","RTTGazeboEmbedded")
+setActivity("gazebo",0,10,ORO_SCHED_OTHER)
+gazebo.argv = strings("--verbose")
+gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+
+loadComponent("coman_gazebo","cogimon::robotSim")
+setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
+
+
+gazebo.configure()
+gazebo.start()
+gazebo.toggleDynamicsSimulation(false)
+
+gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
+
+coman_gazebo.getModel("kuka")
+
+coman_gazebo.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+
+
+coman_gazebo.configure()
+
+loadComponent("fkin", "cosima::ForwardKinematics")
+setActivity("fkin",0.1,10,ORO_SCHED_OTHER)
+
+fkin.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+
+fkin.configure()
+
+
+
+
+
+
+var ConnPolicy cp;
+connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp)
+
+
+gazebo.toggleDynamicsSimulation(true)
+fkin.start()
