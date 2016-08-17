@@ -218,14 +218,14 @@ bool ConstrainedAuxiliaries::loadURDFAndSRDF(const std::string &URDF_path,
 void ConstrainedAuxiliaries::calculateAuxiliaries(const KDL::Jacobian& jac_,
 		const KDL::JntSpaceInertiaMatrix& M_) {
 
-	// TODO constraint jacobian needs to be moved and need to depend on the constraint matrix!
-	jac_cstr_ = jac_.data;
-	jac_cstr_.row(0).setZero();
-	jac_cstr_.row(1).setZero();
-	//jac_cstr_.row(2).setZero();
-	jac_cstr_.row(3).setZero();
-	jac_cstr_.row(4).setZero();
-	jac_cstr_.row(5).setZero();
+	// TODO constraint jacobian needs to be moved and need to depend on the constrained matrix!
+//	jac_cstr_ = jac_.data;
+//	jac_cstr_.row(0).setZero();
+//	jac_cstr_.row(1).setZero();
+	jac_cstr_.row(2).setZero();
+//	jac_cstr_.row(3).setZero();
+//	jac_cstr_.row(4).setZero();
+//	jac_cstr_.row(5).setZero();
 
 	jac_cstr_MPI = (jac_cstr_.transpose() * jac_cstr_ + tmpeye77).inverse()
 			* jac_cstr_.transpose();
