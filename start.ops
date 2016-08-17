@@ -39,14 +39,21 @@ setActivity("idyn",0.1,10,ORO_SCHED_OTHER)
 idyn.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
 idyn.configure()
 
-
+loadComponent("caux", "cosima::ConstrainedAuxiliaries")
+setActivity("caux",0.1,10,ORO_SCHED_OTHER)
+caux.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+caux.configure()
 
 
 var ConnPolicy cp;
 connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp)
 connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp)
 
+connect("fkin.jacobian", "caux.jacobian", cp)
+connect("idyn.inertia", "caux.inertia", cp)
+
 
 gazebo.toggleDynamicsSimulation(true)
 fkin.start()
 idyn.start()
+caux.start()

@@ -1,5 +1,5 @@
-#ifndef FORWARD_KINEMATICS_HPP
-#define FORWARD_KINEMATICS_HPP
+#ifndef CONSTRAINED_AUXILIARIES_HPP
+#define CONSTRAINED_AUXILIARIES_HPP
 
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>
@@ -37,13 +37,13 @@
 #include <kdl/framevel_io.hpp>
 #include <kdl/jacobian.hpp>
 
-//#include <kdl/chainidsolver_recursive_newton_euler.hpp>
-//#include <kdl/chaindynparam.hpp>
+#include <kdl/chainidsolver_recursive_newton_euler.hpp>
+#include <kdl/chaindynparam.hpp>
 #include <kdl/chainfksolvervel_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacdotsolver.hpp>
-//#include <kdl/chainfksolver.hpp>
+#include <kdl/chainfksolver.hpp>
 
 // RST-RT
 #include <rst-rt/robot/JointState.hpp>
@@ -53,15 +53,15 @@
 
 namespace cosima {
 
-class ForwardKinematics: public RTT::TaskContext {
+class ConstrainedAuxiliaries: public RTT::TaskContext {
 public:
-	ForwardKinematics(std::string const& name);
+	ConstrainedAuxiliaries(std::string const& name);
 	bool configureHook();
 	void updateHook();
 	bool startHook();
 	void WorldUpdateBegin();
 	void WorldUpdateEnd();
-	virtual ~ForwardKinematics() {
+	virtual ~ConstrainedAuxiliaries() {
 	}
 
 protected:
@@ -69,18 +69,37 @@ protected:
 	/**
 	 * OutputPorts publish data.
 	 */
-	RTT::OutputPort<KDL::Jacobian> jacobian_Port;
-	RTT::OutputPort<KDL::Jacobian> jacobianDot_Port;
+	RTT::OutputPort<Eigen::MatrixXf> p_Port;
+	RTT::OutputPort<Eigen::VectorXf> lambda_constraint_Port;
+	RTT::OutputPort<Eigen::VectorXf> jac_constraint_Port;
+	RTT::OutputPort<Eigen::VectorXf> jac_constraint_mpi_Port;
+	RTT::OutputPort<Eigen::VectorXf> inertia_constraint_Port;
+	RTT::OutputPort<Eigen::VectorXf> c_constraint_Port;
 
-	RTT::OutputPort<KDL::Frame> position_Port;
-	RTT::OutputPort<KDL::FrameVel> velocity_Port;
+	// intermediate output
+	Eigen::MatrixXd P;
+	Eigen::MatrixXd Lamda_cstr;
+	Eigen::MatrixXd jac_cstr_, jac_cstr_MPI;
+	Eigen::MatrixXd M_cstr_;
+	Eigen::MatrixXd C_cstr_;
+
+	// auxiliaries
+	Eigen::MatrixXd identity77, identity66;
+	Eigen::MatrixXd tmpeye77, tmpeye66;
+
 
 	/**
 	 * InputPorts read data.
 	 */
-	RTT::InputPort<rstrt::robot::JointState> jointFB_Port;
-	RTT::FlowStatus jointFB_Flow;
-	rstrt::robot::JointState jointFB;
+	RTT::InputPort<KDL::Jacobian> jacobian_Port;
+	RTT::FlowStatus jacobian_Flow;
+	KDL::Jacobian jacobian;
+
+	// inertia
+	RTT::InputPort<KDL::JntSpaceInertiaMatrix> inertia_Port;
+	RTT::FlowStatus inertia_Flow;
+	KDL::JntSpaceInertiaMatrix M;
+
 
 	bool loadURDFAndSRDF(const std::string& URDF_path,
 			const std::string& SRDF_path);
@@ -89,7 +108,7 @@ protected:
 
 	void selectKinematicChain(const std::string& chainName);
 
-	void calculateKinematics(const rstrt::robot::JointState& jointState);
+	void calculateAuxiliaries(const KDL::Jacobian& jac_, const KDL::JntSpaceInertiaMatrix& M_);
 
 	XBot::XBotCoreModel _xbotcore_model;
 
@@ -98,19 +117,9 @@ protected:
 	// KDL stuff
 	KDL::Tree robot_tree;
 
-	KDL::JntArrayVel jntPosConfigPlusJntVelConfig_q;
-
-	boost::shared_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver;
-	boost::shared_ptr<KDL::ChainJntToJacDotSolver> jnt_to_jac_dot_solver;
-	boost::shared_ptr<KDL::ChainFkSolverPos_recursive> jnt_to_cart_pos_solver;
-	boost::shared_ptr<KDL::ChainFkSolverVel_recursive> jnt_to_cart_vel_solver;
-
 	KDL::Chain activeKDLChain;
 
-	KDL::Jacobian jac_;
-	KDL::Jacobian jac_dot_;
-	KDL::Frame cartFrame;
-	KDL::FrameVel velFrame;
+	boost::shared_ptr<KDL::ChainDynParam> id_dyn_solver;
 
 	// Helper tools for KDL
 	KDLParser p;

@@ -109,6 +109,7 @@ protected:
 	KDL::JntArray G_;
 	Eigen::VectorXd h;
 
+
 	KDL::Vector gravity_vector;
 
 	KDL::Chain activeKDLChain;
