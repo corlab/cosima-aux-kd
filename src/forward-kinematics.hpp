@@ -70,10 +70,12 @@ protected:
 	 * OutputPorts publish data.
 	 */
     RTT::OutputPort<Eigen::MatrixXf> jacobian_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacobianOriginal_Port;
     RTT::OutputPort<Eigen::MatrixXf> jacobianDot_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacobianDotOriginal_Port;
 
-	RTT::OutputPort<KDL::Frame> position_Port;
-	RTT::OutputPort<KDL::FrameVel> velocity_Port;
+    RTT::OutputPort<Eigen::VectorXf> position_Port;
+    RTT::OutputPort<Eigen::VectorXf> velocity_Port;
 
     RTT::OutputPort<rstrt::robot::JointState> out_jointFB_Port;
 
@@ -122,8 +124,13 @@ protected:
     Eigen::MatrixXf jacFloat_dot_;
     Eigen::MatrixXf jac_current;
     Eigen::MatrixXf jac_dot_current;
+    Eigen::MatrixXf jac_original_current;
+    Eigen::MatrixXf jac_dot_original_current;
+
 	KDL::Frame cartFrame;
 	KDL::FrameVel velFrame;
+    Eigen::VectorXf cartPosFloat;
+    Eigen::VectorXf cartVelFloat;
 
 	// Helper tools for KDL
 	KDLParser p;

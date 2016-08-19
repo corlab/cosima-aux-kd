@@ -15,7 +15,9 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
                 "jacobian"), jacobianDot_Port("jacobianDot"),  p_Port("pMatrix"), lambda_constraint_Port(
                 "lambdaConstrained"), jac_constraint_Port("jacConstrained"), jac_Dot_constraint_Port("jacConstrained"),
         jac_constraint_mpi_Port("jacConstrainedMPI"), jac_mpi_Port("jacMPI"), inertia_constraint_Port(
-				"inertiaConstrained"), c_constraint_Port("cConstrained") {
+                "inertiaConstrained"), c_constraint_Port("cConstrained"),
+        jacobianOriginal_Port("jacobianOriginal"),
+        jacobianDotOriginal_Port("jacobianDotOriginal") {
 
     this->addOperation("calculateAuxiliaries",&ConstrainedAuxiliaries::calculateAuxiliaries, this, RTT::ClientThread);
     this->addOperation("setDOFsize", &ConstrainedAuxiliaries::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
@@ -23,6 +25,7 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
 	// input ports
 	this->ports()->addPort(inertia_Port).doc("Receiving inertia.");
 	this->ports()->addPort(jacobian_Port).doc("Receiving jacobian.");
+    this->ports()->addPort(jacobianDot_Port).doc("Receiving jacobian dot.");
 
 	// output ports
 	this->ports()->addPort(p_Port).doc("Sending joint feedback.");
@@ -31,6 +34,13 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
 			"Sending constrained jacobian.");
     this->ports()->addPort(jac_Dot_constraint_Port).doc(
             "Sending constrained jacobianDot.");
+
+    this->ports()->addPort(jacobianDotOriginal_Port).doc(
+            "Receiving jacobianDotOriginal.");
+
+    this->ports()->addPort(jacobianOriginal_Port).doc(
+            "Receiving jacobianOriginal.");
+
 	this->ports()->addPort(jac_constraint_mpi_Port).doc(
 			"Sending constrained jacobian MPI.");
     this->ports()->addPort(jac_mpi_Port).doc(
@@ -55,11 +65,13 @@ void ConstrainedAuxiliaries::setDOFsize(unsigned int DOFsize){
     M = Eigen::MatrixXf::Zero(DOFsize,DOFsize);
 
     jacobian = Eigen::MatrixXf::Zero(TaskSpaceDimension,DOFsize);
+    jacobianOriginal = Eigen::MatrixXf::Zero(TaskSpaceDimension,DOFsize);
     jacobianDot = Eigen::MatrixXf::Zero(TaskSpaceDimension,DOFsize);
+    jacobianDotOriginal = Eigen::MatrixXf::Zero(TaskSpaceDimension,DOFsize);
 
-    jac_cstr_.resize(TaskSpaceDimension, DOFsize);
+    jac_constraint_.resize(TaskSpaceDimension, DOFsize);
     jac_Dot_cstr_.resize(TaskSpaceDimension, DOFsize);
-    jac_constraint_Port.setDataSample(jac_cstr_);
+    jac_constraint_Port.setDataSample(jac_constraint_);
     jac_Dot_constraint_Port.setDataSample(jac_Dot_cstr_);
 
     jac_cstr_MPI.resize(DOFsize, TaskSpaceDimension);
@@ -88,22 +100,24 @@ void ConstrainedAuxiliaries::setDOFsize(unsigned int DOFsize){
     tmpeyeDOFsizeDOFsize.resize(DOFsize, DOFsize);
     tmpeyeTSdimTSdim.resize(TaskSpaceDimension, TaskSpaceDimension);
 
-    tmpeyeDOFsizeDOFsize = 0.0001 * identityDOFsizeDOFsize;
-    tmpeyeTSdimTSdim = 0.0001 * identityTSdimTSdim;
+    tmpeyeDOFsizeDOFsize = 0.001 * identityDOFsizeDOFsize;
+    tmpeyeTSdimTSdim = 0.001 * identityTSdimTSdim;
 }
 
 void ConstrainedAuxiliaries::updateHook() {
-
+    jacobianOriginal_Flow = jacobianOriginal_Port.read(jacobianOriginal);
     jacobian_Flow = jacobian_Port.read(jacobian);
     jacobianDot_Flow = jacobianDot_Port.read(jacobianDot);
+    jacobianDotOriginal_Flow = jacobianDotOriginal_Port.read(jacobianDotOriginal);
     inertia_Flow = inertia_Port.read(M);
-    if ((jacobian_Flow != RTT::NoData) && (jacobianDot_Flow != RTT::NoData) && (inertia_Flow != RTT::NoData)) {
-        if ((jacobian_Flow == RTT::NewData) || (jacobianDot_Flow == RTT::NewData) || (inertia_Flow == RTT::NewData)) {
 
-            calculateAuxiliaries(jacobian, jacobianDot, M);
+    if ((jacobian_Flow != RTT::NoData) && (jacobianDot_Flow != RTT::NoData) && (inertia_Flow != RTT::NoData) && (jacobianOriginal_Flow != RTT::NoData) && (jacobianDotOriginal_Flow != RTT::NoData)) {
+        if ((jacobian_Flow == RTT::NewData) || (jacobianDot_Flow == RTT::NewData) || (inertia_Flow == RTT::NewData) || (jacobianOriginal_Flow == RTT::NewData) || (jacobianDotOriginal_Flow == RTT::NewData)) {
+
+            calculateAuxiliaries(jacobian, jacobianDot, M, jacobianOriginal, jacobianDotOriginal);
 
             // publish items!
-            jac_constraint_Port.write(jac_cstr_);
+            jac_constraint_Port.write(jac_constraint_);
             jac_Dot_constraint_Port.write(jac_Dot_cstr_);
 
             jac_constraint_mpi_Port.write(jac_cstr_MPI);
@@ -128,22 +142,22 @@ bool ConstrainedAuxiliaries::startHook() {
 
 bool ConstrainedAuxiliaries::configureHook() {
 	jacobian_Flow = RTT::NoData;
+    jacobianOriginal_Flow = RTT::NoData;
     jacobianDot_Flow = RTT::NoData;
+    jacobianDotOriginal_Flow = RTT::NoData;
 	inertia_Flow = RTT::NoData;
 	return true;
 }
 
-
-void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_,
-        const Eigen::MatrixXf& M_) {
+void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jacobianOriginal_, const Eigen::MatrixXf& jacobianDotOriginal_) {
 
     // TODO constraint jacobian needs to be moved and need to depend on the constrained matrix!
-    jac_cstr_ = jac_;
-    jac_Dot_cstr_ = jac_Dot_;
+    jac_constraint_ = jacobianOriginal_;
+    jac_Dot_cstr_ = jacobianDotOriginal_;
 
     if(receiveTranslationOnly){
-        jac_cstr_.row(0).setZero();
-        jac_cstr_.row(1).setZero();
+        jac_constraint_.row(0).setZero();
+        jac_constraint_.row(1).setZero();
     //	jac_cstr_.row(2).setZero();
 
         jac_Dot_cstr_.row(0).setZero();
@@ -151,11 +165,11 @@ void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, c
     //	jac_Dot_cstr_.row(2).setZero();
     }
     else{
-        jac_cstr_.row(0).setZero();
-        jac_cstr_.row(1).setZero();
+        jac_constraint_.row(0).setZero();
+        jac_constraint_.row(1).setZero();
     //	jac_cstr_.row(2).setZero();
-        jac_cstr_.row(3).setZero();
-        jac_cstr_.row(4).setZero();
+        jac_constraint_.row(3).setZero();
+        jac_constraint_.row(4).setZero();
     //	jac_cstr_.row(5).setZero();
 
         jac_Dot_cstr_.row(0).setZero();
@@ -167,23 +181,36 @@ void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, c
     }
 
     //Eq. under Eq. 10
-    jac_cstr_MPI = (jac_cstr_.transpose() * jac_cstr_ + tmpeyeDOFsizeDOFsize).inverse() * jac_cstr_.transpose();
+    jac_cstr_MPI = (jac_constraint_.transpose() * jac_constraint_ + tmpeyeDOFsizeDOFsize).inverse() * jac_constraint_.transpose();
 
     //Eq. under Eq. 10
-    P = identityDOFsizeDOFsize - (jac_cstr_MPI * jac_cstr_);
+    P = identityDOFsizeDOFsize - (jac_cstr_MPI * jac_constraint_);
+
+    RTT::log(RTT::Warning) << "jac_\n" << jac_ << RTT::endlog();
+    RTT::log(RTT::Warning) << "jac_cstr_MPI\n" << jac_cstr_MPI << RTT::endlog();
+    RTT::log(RTT::Warning) << "jac_cstr_\n" << jac_constraint_ << RTT::endlog();
 
     //Eq. under Eq. 11
     M_cstr_ = P * M_ + identityDOFsizeDOFsize - P;
+
+    RTT::log(RTT::Warning) << "M_cstr_\n" << M_cstr_ << RTT::endlog();
 
     //Eq. under Eq. 11
     //C_cstr_ = -(jac_cstr_MPI * jac_cstr_); //TODO which one is correct???
     C_cstr_ = -(jac_cstr_MPI * jac_Dot_cstr_); //TODO
 
+    RTT::log(RTT::Warning) << "C_cstr_\n" << C_cstr_ << RTT::endlog();
+
     //Eq. under Eq. 11
     Lamda_cstr = (jac_ * M_cstr_.inverse() * P * jac_.transpose() + tmpeyeTSdimTSdim).inverse();
 
+    RTT::log(RTT::Warning) << "Lamda_cstr\n" << Lamda_cstr << RTT::endlog();
+
     //Eq. 14
-    jac_MPI = (jac_ * M_cstr_.inverse() * P * jac_.transpose()).inverse() * jac_ * M_cstr_.inverse() * P;
+    //jac_MPI = (jac_ * M_cstr_.inverse() * P * jac_.transpose() + tmpeyeTSdimTSdim).inverse() * jac_ * M_cstr_.inverse() * P;
+    jac_MPI = Lamda_cstr * jac_ * M_cstr_.inverse() * P;
+
+    RTT::log(RTT::Warning) << "jac_MPI\n" << jac_MPI << RTT::endlog();
 }
 
 ORO_LIST_COMPONENT_TYPE(cosima::ConstrainedAuxiliaries)

@@ -7,7 +7,7 @@ import("rtt-gazebo-robot-sim")
 
 import("cosima-aux-kd")
 
-import("RTTController")
+import("LWRController")
 
 loadComponent("gazebo","RTTGazeboEmbedded")
 setActivity("gazebo",0,10,ORO_SCHED_OTHER)
@@ -26,24 +26,27 @@ gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
 
 coman_gazebo.getModel("kuka")
 
-coman_gazebo.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+coman_gazebo.loadURDFAndSRDF("/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
 
+gazebo.world_path = "/homes/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
 
 coman_gazebo.configure()
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
-fkin.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+fkin.setDOFsize(7);
+fkin.loadURDFAndSRDF("/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
-idyn.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+idyn.setDOFsize(7);
+idyn.loadURDFAndSRDF("/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
-caux.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+caux.setDOFsize(7);
 caux.configure()
 
 
@@ -71,6 +74,15 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(7);
+var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(7)
+desJointAngles.angles[0] = 0.0410
+desJointAngles.angles[1] = 0.0606 
+desJointAngles.angles[2] = -0.0154
+desJointAngles.angles[3] = -1.3954
+desJointAngles.angles[4] = -0.0548
+desJointAngles.angles[5] = 1.1377
+desJointAngles.angles[6] = 0.0 
+nullspacecontroller.setDesiredAngles(desJointAngles)
 nullspacecontroller.configure()
 
 
@@ -95,6 +107,9 @@ connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
 connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
 
 connect("fkin.jacobian", "caux.jacobian", cp_aux)
+connect("fkin.jacobianOriginal", "caux.jacobianOriginal", cp_aux)
+connect("fkin.jacobianDot", "caux.jacobianDot", cp_aux)
+connect("fkin.jacobianDotOriginal", "caux.jacobianDotOriginal", cp_aux)
 connect("idyn.inertia", "caux.inertia", cp_aux)
 
 ###
@@ -116,7 +131,7 @@ connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontrolle
 # constrained part
 connect("caux.lambdaConstrained", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
 connect("caux.inertiaConstrained", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
-connect("caux.pMatrix", "positioncontroller.in_pMatrix", cp_aux_positioncontroller)
+connect("caux.pMatrix", "positioncontroller.in_P_port", cp_aux_positioncontroller)
 connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
 
@@ -131,8 +146,6 @@ connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nu
 
 # constrained part
 connect("caux.jacMPI", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
-#       ports()->removePort("in_desiredAngles_port"); // TODO ????
-
 
 ###
 # connect AUX to TorqueSuperImposer
@@ -156,5 +169,5 @@ caux.start()
 trajectorygenerator.start()
 positioncontroller.start()
 nullspacecontroller.start()
-torquesuperimposer.start()
+#torquesuperimposer.start()
 

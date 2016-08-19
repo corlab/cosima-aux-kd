@@ -70,12 +70,12 @@ protected:
 	 * OutputPorts publish data.
 	 */
 	RTT::OutputPort<Eigen::MatrixXf> p_Port;
-	RTT::OutputPort<Eigen::VectorXf> lambda_constraint_Port;
-    RTT::OutputPort<Eigen::VectorXf> jac_constraint_Port, jac_Dot_constraint_Port;
-	RTT::OutputPort<Eigen::VectorXf> jac_constraint_mpi_Port;
-    RTT::OutputPort<Eigen::VectorXf> jac_mpi_Port;
-	RTT::OutputPort<Eigen::VectorXf> inertia_constraint_Port;
-	RTT::OutputPort<Eigen::VectorXf> c_constraint_Port;
+    RTT::OutputPort<Eigen::MatrixXf> lambda_constraint_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jac_constraint_Port, jac_Dot_constraint_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jac_constraint_mpi_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jac_mpi_Port;
+    RTT::OutputPort<Eigen::MatrixXf> inertia_constraint_Port;
+    RTT::OutputPort<Eigen::MatrixXf> c_constraint_Port;
 
 	// intermediate output
     Eigen::MatrixXf P;
@@ -96,17 +96,22 @@ protected:
 	 */
     RTT::InputPort<Eigen::MatrixXf> jacobian_Port;
     RTT::InputPort<Eigen::MatrixXf> jacobianDot_Port;
-	RTT::FlowStatus jacobian_Flow;
-    RTT::FlowStatus jacobianDot_Flow;
-    Eigen::MatrixXf jacobian;
-    Eigen::MatrixXf jacobianDot;
+    RTT::InputPort<Eigen::MatrixXf> jacobianOriginal_Port;
+    RTT::InputPort<Eigen::MatrixXf> jacobianDotOriginal_Port;
 
-	// inertia
     RTT::InputPort<Eigen::MatrixXf> inertia_Port;
-	RTT::FlowStatus inertia_Flow;
+	RTT::FlowStatus jacobian_Flow;
+    RTT::FlowStatus jacobianOriginal_Flow;
+    RTT::FlowStatus jacobianDot_Flow;
+    RTT::FlowStatus jacobianDotOriginal_Flow;
+    RTT::FlowStatus inertia_Flow;
+    Eigen::MatrixXf jacobian;
+    Eigen::MatrixXf jacobianOriginal;
+    Eigen::MatrixXf jacobianDot;
+    Eigen::MatrixXf jacobianDotOriginal;
     Eigen::MatrixXf M;
 
-    void calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_);
+    void calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jacobianOriginal_, const Eigen::MatrixXf& jacobianDotOriginal_);
     void setDOFsize(unsigned int DOFsize);
 
 
