@@ -74,7 +74,8 @@ protected:
 
 	RTT::OutputPort<KDL::Frame> position_Port;
 	RTT::OutputPort<KDL::FrameVel> velocity_Port;
-    RTT::OutputPort<rstrt::kinematics::JointVelocities> in_currentJntVelocity_port;
+
+    RTT::OutputPort<rstrt::robot::JointState> out_jointFB_Port;
 
 	/**
 	 * InputPorts read data.
