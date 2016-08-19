@@ -108,8 +108,7 @@ connect("fkin.jacobianDot_Port", "positioncontroller.in_jacobianDot_port", cp_au
 connect("fkin.position_Port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
 connect("fkin.velocity_Port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
 
-# TODO perhaps needs to be changed!
-connect("fkin.jointFB_Port", "positioncontroller.in_currentJntVelocity_port", cp_aux_positioncontroller)
+connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
 
 # dynamics part
 connect("idyn.h_Port", "positioncontroller.in_h_port", cp_aux_positioncontroller)
@@ -128,8 +127,7 @@ var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
 connect("fkin.jacobian_Port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
-# TODO perhaps needs to be changed!
-connect("fkin.jointFB_Port", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
+connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
 # constrained part
 # TODO ?????
