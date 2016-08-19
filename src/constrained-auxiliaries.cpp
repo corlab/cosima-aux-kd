@@ -24,6 +24,8 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
 			&ConstrainedAuxiliaries::getKinematicChainNames, this,
 			RTT::ClientThread);
 
+    this->addOperation("setDOFsize", &ConstrainedAuxiliaries::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
+
 	// input ports
 	this->ports()->addPort(inertia_Port).doc("Receiving inertia.");
 	this->ports()->addPort(jacobian_Port).doc("Receiving jacobian.");
@@ -51,6 +53,11 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
         TaskSpaceDimension = 6;
     }
     DOFsize = 7; //TODO
+}
+
+void ConstrainedAuxiliaries::setDOFsize(unsigned int DOFsize){
+    assert(DOFsize > 0);
+    this->DOFsize = DOFsize;
 }
 
 void ConstrainedAuxiliaries::updateHook() {

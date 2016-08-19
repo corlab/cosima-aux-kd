@@ -21,6 +21,8 @@ ForwardKinematics::ForwardKinematics(const std::string &name) :
 			&ForwardKinematics::getKinematicChainNames, this,
 			RTT::ClientThread);
 
+    this->addOperation("setDOFsize", &ForwardKinematics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
+
 	this->ports()->addPort(jacobian_Port).doc("Sending calculated jacobian.");
 
 	this->ports()->addPort(jacobianDot_Port).doc(
@@ -45,6 +47,11 @@ ForwardKinematics::ForwardKinematics(const std::string &name) :
 
     jacFloat_= Eigen::MatrixXf(6,DOFsize); //allways 6 rows
     jacFloat_dot_ = Eigen::MatrixXf(6,DOFsize); //allways 6 rows
+}
+
+void ForwardKinematics::setDOFsize(unsigned int DOFsize){
+    assert(DOFsize > 0);
+    this->DOFsize = DOFsize;
 }
 
 void ForwardKinematics::updateHook() {

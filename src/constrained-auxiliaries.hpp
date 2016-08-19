@@ -116,6 +116,8 @@ protected:
 
     void calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_);
 
+    void setDOFsize(unsigned int DOFsize);
+
 	XBot::XBotCoreModel _xbotcore_model;
 
 	std::string activeKinematicChain;

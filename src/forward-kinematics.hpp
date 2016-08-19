@@ -92,6 +92,8 @@ protected:
 
 	void calculateKinematics(const rstrt::robot::JointState& jointState);
 
+    void setDOFsize(unsigned int DOFsize);
+
     void castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f);
     void castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d);
     void castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f);

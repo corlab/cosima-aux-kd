@@ -21,6 +21,8 @@ InverseDynamics::InverseDynamics(const std::string &name) :
 	this->addOperation("getKinematicChainNames",
 			&InverseDynamics::getKinematicChainNames, this, RTT::ClientThread);
 
+    this->addOperation("setDOFsize", &InverseDynamics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
+
 	this->ports()->addPort(inertia_Port).doc("Sending inertia.");
 
 	this->ports()->addPort(h_Port).doc(
@@ -40,6 +42,11 @@ InverseDynamics::InverseDynamics(const std::string &name) :
         TaskSpaceDimension = 6;
     }
     DOFsize = 7; //TODO
+}
+
+void InverseDynamics::setDOFsize(unsigned int DOFsize){
+    assert(DOFsize > 0);
+    this->DOFsize = DOFsize;
 }
 
 void InverseDynamics::useRobotInertia_func(bool useRobotInertia) {
