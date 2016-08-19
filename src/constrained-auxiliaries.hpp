@@ -80,7 +80,7 @@ protected:
 	// intermediate output
     Eigen::MatrixXf P;
     Eigen::MatrixXf Lamda_cstr;
-    Eigen::MatrixXf jac_cstr_, jac_cstr_MPI;
+    Eigen::MatrixXf jac_constraint_, jac_cstr_MPI;
     Eigen::MatrixXf jac_Dot_cstr_;
     Eigen::MatrixXf M_cstr_;
     Eigen::MatrixXf C_cstr_;
