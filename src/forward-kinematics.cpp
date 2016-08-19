@@ -43,7 +43,6 @@ ForwardKinematics::ForwardKinematics(const std::string &name) :
     else{
         TaskSpaceDimension = 6;
     }
-    DOFsize = 7; //TODO
 
     jacFloat_= Eigen::MatrixXf(6,DOFsize); //allways 6 rows
     jacFloat_dot_ = Eigen::MatrixXf(6,DOFsize); //allways 6 rows
