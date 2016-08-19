@@ -1,0 +1,163 @@
+import("eigen_typekit")
+import("kdl_typekit")
+import("rst-rt_typekit")
+
+import("rtt_gazebo_embedded")
+import("rtt-gazebo-robot-sim")
+
+import("cosima-aux-kd")
+
+import("RTTController")
+
+loadComponent("gazebo","RTTGazeboEmbedded")
+setActivity("gazebo",0,10,ORO_SCHED_OTHER)
+gazebo.argv = strings("--verbose")
+gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+
+loadComponent("coman_gazebo","cogimon::robotSim")
+setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
+
+
+gazebo.configure()
+gazebo.start()
+gazebo.toggleDynamicsSimulation(false)
+
+gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
+
+coman_gazebo.getModel("kuka")
+
+coman_gazebo.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+
+
+coman_gazebo.configure()
+
+loadComponent("fkin", "cosima::ForwardKinematics")
+setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+fkin.configure()
+
+loadComponent("idyn", "cosima::InverseDynamics")
+setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
+idyn.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+idyn.configure()
+
+loadComponent("caux", "cosima::ConstrainedAuxiliaries")
+setActivity("caux",0.01,10,ORO_SCHED_OTHER)
+caux.loadURDFAndSRDF("/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+caux.configure()
+
+
+# load controller related stuff
+# load TrajectoryGenerator
+loadComponent("trajectorygenerator", "TrajectoryGenerator")
+setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
+trajectorygenerator.preparePorts()
+trajectorygenerator.configure()
+
+# load PositionController
+loadComponent("positioncontroller", "PositionController")
+setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
+positioncontroller.setDOFsize(7);
+positioncontroller.configure()
+
+# connect TrajectoryGenerator to PositionController
+var ConnPolicy cp_traj_posCtrl;
+connect("trajectorygenerator.out_desiredTaskSpacePosition_port", "positioncontroller.in_desiredTaskSpacePosition_port", cp_traj_posCtrl)
+connect("trajectorygenerator.out_desiredTaskSpaceVelocity_port", "positioncontroller.in_desiredTaskSpaceVelocity_port", cp_traj_posCtrl)
+connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positioncontroller.in_desiredTaskSpaceAcceleration_port", cp_traj_posCtrl)
+
+
+# load NullspaceController
+loadComponent("nullspacecontroller", "NullspaceController")
+setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
+nullspacecontroller.setDOFsize(7);
+nullspacecontroller.configure()
+
+
+# load TorqueSuperimposer
+loadComponent("torquesuperimposer", "TorqueSuperimposer")
+setActivity("torquesuperimposer",0.01,29,ORO_SCHED_OTHER)
+torquesuperimposer.setDOFsize(7);
+torquesuperimposer.configure()
+
+# connect PositionController to TorqueSuperimposer
+var ConnPolicy cp_pos_sum;
+connect("positioncontroller.out_torques_port", "torquesuperimposer.in_torquesA_port", cp_pos_sum)
+
+# connect NullspaceController to TorqueSuperimposer
+var ConnPolicy cp_null_sum;
+connect("nullspacecontroller.out_torques_port", "torquesuperimposer.in_torquesB_port", cp_null_sum)
+
+
+# connect all auxiliaries
+var ConnPolicy cp_aux;
+connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
+connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+
+connect("fkin.jacobian", "caux.jacobian", cp_aux)
+connect("idyn.inertia", "caux.inertia", cp_aux)
+
+###
+# connect AUX to PositionController
+###
+var ConnPolicy cp_aux_positioncontroller;
+# kinematics part
+connect("fkin.jacobian_Port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.jacobianDot_Port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+
+connect("fkin.position_Port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.velocity_Port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+
+# TODO perhaps needs to be changed!
+connect("fkin.jointFB_Port", "positioncontroller.in_currentJntVelocity_port", cp_aux_positioncontroller)
+
+# dynamics part
+connect("idyn.h_Port", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+
+# constrained part
+connect("caux.lambda_constraint_Port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("caux.inertia_constraint_Port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.p_Port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
+connect("caux.c_constraint_Port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+
+
+###
+# connect AUX to NullspaceController
+###
+var ConnPolicy cp_aux_nullspacecontroller;
+# kinematics part
+connect("fkin.jacobian_Port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+
+# TODO perhaps needs to be changed!
+connect("fkin.jointFB_Port", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
+
+# constrained part
+# TODO ?????
+connect("caux.jacobian_Port", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
+#       ports()->removePort("in_desiredAngles_port"); // TODO ????
+
+
+###
+# connect AUX to TorqueSuperImposer
+###
+var ConnPolicy cp_proj_torquesuperimposer;
+connect("caux.p_Port", "torquesuperimposer.in_projection_port", cp_aux_nullspacecontroller)
+
+###
+# connect TorqueSuperImposer to ROBOT
+###
+var ConnPolicy cp_torquesuperimposer_robot;
+connect("torquesuperimposer.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
+
+
+coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
+gazebo.toggleDynamicsSimulation(true)
+fkin.start()
+idyn.start()
+caux.start()
+# start controller related components
+trajectorygenerator.start()
+positioncontroller.start()
+nullspacecontroller.start()
+torquesuperimposer.start()
+
