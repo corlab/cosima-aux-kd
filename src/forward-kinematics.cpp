@@ -12,7 +12,8 @@ using namespace Eigen;
 ForwardKinematics::ForwardKinematics(const std::string &name) :
 		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), jacobian_Port(
 				"jacobian"), jacobianDot_Port("jacobianDot"), position_Port(
-				"position"), velocity_Port("velocity"), jointFB_Port("jointFB") {
+				"position"), velocity_Port("velocity"), jointFB_Port("jointFB"),
+                                                    out_jointFB_Port("out_jointFB") {
 
 	this->addOperation("loadURDFAndSRDF", &ForwardKinematics::loadURDFAndSRDF,
 			this, RTT::ClientThread);
@@ -24,6 +25,8 @@ ForwardKinematics::ForwardKinematics(const std::string &name) :
     this->addOperation("setDOFsize", &ForwardKinematics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
 
 	this->ports()->addPort(jacobian_Port).doc("Sending calculated jacobian.");
+
+            this->ports()->addPort(out_jointFB_Port).doc("Forward robot joint feedback.");
 
 	this->ports()->addPort(jacobianDot_Port).doc(
 			"Sending calculated jacobian dot.");
@@ -69,6 +72,8 @@ void ForwardKinematics::updateHook() {
 //		RTT::log(RTT::Error) << "Cart. Pos: " << cartFrame << RTT::endlog();
 
         velocity_Port.write(velFrame);
+
+        out_jointFB_Port.write(jointFB);
 
     }
 }
@@ -154,7 +159,7 @@ bool ForwardKinematics::selectKinematicChain(const std::string& chainName) {
     jointFB = rstrt::robot::JointState(DOFsize);
     jointFB.angles.fill(0);
 
-    return true;
+    out_jointFB_Port.setDataSample(jointFB);
 }
 
 bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,

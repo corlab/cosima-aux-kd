@@ -102,23 +102,22 @@ connect("idyn.inertia", "caux.inertia", cp_aux)
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("fkin.jacobian_Port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("fkin.jacobianDot_Port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("fkin.jacobian", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.jacobianDot", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
-connect("fkin.position_Port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
-connect("fkin.velocity_Port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
 
-# TODO perhaps needs to be changed!
-connect("fkin.jointFB_Port", "positioncontroller.in_currentJntVelocity_port", cp_aux_positioncontroller)
+connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
 
 # dynamics part
-connect("idyn.h_Port", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontroller)
 
 # constrained part
-connect("caux.lambda_constraint_Port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
-connect("caux.inertia_constraint_Port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
-connect("caux.p_Port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
-connect("caux.c_constraint_Port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+connect("caux.lambdaConstrained", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("caux.inertiaConstrained", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.pMatrix", "positioncontroller.in_pMatrix", cp_aux_positioncontroller)
+connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
 
 ###
@@ -126,14 +125,12 @@ connect("caux.c_constraint_Port", "positioncontroller.in_constraintC_port", cp_a
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("fkin.jacobian_Port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("fkin.jacobian", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
-# TODO perhaps needs to be changed!
-connect("fkin.jointFB_Port", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
+connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
 # constrained part
-# TODO ?????
-connect("caux.jacobian_Port", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
+connect("caux.jacMPI", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
 #       ports()->removePort("in_desiredAngles_port"); // TODO ????
 
 
@@ -141,7 +138,7 @@ connect("caux.jacobian_Port", "nullspacecontroller.in_jacobianInv_port", cp_aux_
 # connect AUX to TorqueSuperImposer
 ###
 var ConnPolicy cp_proj_torquesuperimposer;
-connect("caux.p_Port", "torquesuperimposer.in_projection_port", cp_aux_nullspacecontroller)
+connect("caux.pMatrix", "torquesuperimposer.in_projection_port", cp_aux_nullspacecontroller)
 
 ###
 # connect TorqueSuperImposer to ROBOT

@@ -23,6 +23,16 @@ set (Eigen_INCLUDE_DIRS "/usr/include/eigen3")
 find_package(orocos_kdl REQUIRED)
 find_package(Boost COMPONENTS thread REQUIRED)
 find_package(srdfdom_advr REQUIRED)
+message(STATUS "srdfdom_advr version: ${srdfdom_advr_VERSION}")
+message(STATUS "srdfdom_advr_LIBRARY_DIRS: ${srdfdom_advr_LIBRARY_DIRS}")
+message(STATUS "srdfdom_advr_LIBRARIES: ${srdfdom_advr_LIBRARIES}")
+message(STATUS "srdfdom_advr_INCLUDE_DIRS: ${srdfdom_advr_INCLUDE_DIRS}")
+
+
+
+link_directories(${srdfdom_advr_LIBRARY_DIRS})
+
+
 find_package(XBotCoreModel REQUIRED)
 
 find_package(RST-RT REQUIRED)
