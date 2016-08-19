@@ -91,7 +91,7 @@ protected:
 
 	std::vector<std::string> getKinematicChainNames();
 
-	void selectKinematicChain(const std::string& chainName);
+    bool selectKinematicChain(const std::string& chainName);
 
     void calculateDynamics(const rstrt::robot::JointState& jointState);
 

@@ -91,7 +91,7 @@ std::vector<std::string> InverseDynamics::getKinematicChainNames() {
 	return names;
 }
 
-void InverseDynamics::selectKinematicChain(const std::string& chainName) {
+bool InverseDynamics::selectKinematicChain(const std::string& chainName) {
 // Needs to be done in non-real-time only!
 
 	std::vector<std::string> enabled_joints_in_chain;
@@ -108,7 +108,7 @@ void InverseDynamics::selectKinematicChain(const std::string& chainName) {
 				<< "] URDF could not be parsed !" << endlog();
 
 		// TODO add proper error handling!
-		return;
+        return false;
 	}
 	_models_loaded = true;
 
@@ -120,9 +120,15 @@ void InverseDynamics::selectKinematicChain(const std::string& chainName) {
 			<< activeKDLChain.getNrOfJoints() << ", activeKDLChain segments: "
 			<< activeKDLChain.getNrOfSegments() << RTT::endlog();
 
+    if(activeKDLChain.getNrOfJoints() != DOFsize){
+        log(Info) << "DOFsize " << DOFsize << " is different from urdf model" << RTT::endlog();
+        assert(false); //TODO
+        return false;
+    }
+
 	id_dyn_solver.reset(new KDL::ChainDynParam(activeKDLChain, gravity_vector));
 
-	jntPosConfigPlusJntVelConfig_q.resize(activeKDLChain.getNrOfJoints());
+    jntPosConfigPlusJntVelConfig_q.resize(DOFsize);
 
     gravity = Eigen::VectorXf(DOFsize,1);
     coriolis = Eigen::VectorXf(DOFsize,1);
@@ -133,12 +139,13 @@ void InverseDynamics::selectKinematicChain(const std::string& chainName) {
     h = Eigen::VectorXf(DOFsize);
     h_Port.setDataSample(h);
 
-    M.resize(activeKDLChain.getNrOfJoints());
-    C_.resize(activeKDLChain.getNrOfJoints());
-    G_.resize(activeKDLChain.getNrOfJoints());
+    M.resize(DOFsize);
+    C_.resize(DOFsize);
+    G_.resize(DOFsize);
 
-    jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
+    jointFB = rstrt::robot::JointState(DOFsize);
     jointFB.angles.fill(0);
+    return true;
 }
 
 bool InverseDynamics::loadURDFAndSRDF(const std::string &URDF_path,

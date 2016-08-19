@@ -88,7 +88,7 @@ protected:
 
 	std::vector<std::string> getKinematicChainNames();
 
-	void selectKinematicChain(const std::string& chainName);
+    bool selectKinematicChain(const std::string& chainName);
 
 	void calculateKinematics(const rstrt::robot::JointState& jointState);
 
@@ -133,7 +133,6 @@ private:
     unsigned int DOFsize;
     bool receiveTranslationOnly;
     unsigned int TaskSpaceDimension;
-    Eigen::MatrixXd tmp;//TODO: why do we need this workaround?
 };
 
 }

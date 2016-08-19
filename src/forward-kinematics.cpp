@@ -90,7 +90,7 @@ std::vector<std::string> ForwardKinematics::getKinematicChainNames() {
 	return names;
 }
 
-void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
+bool ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 	// Needs to be done in non-real-time only!
 
 	std::vector<std::string> enabled_joints_in_chain;
@@ -107,7 +107,7 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 				<< "] URDF could not be parsed !" << endlog();
 
 		// TODO add proper error handling!
-		return;
+        return false;
 	}
 	_models_loaded = true;
 
@@ -123,6 +123,12 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 			<< activeKDLChain.getNrOfJoints() << ", activeKDLChain segments: "
 			<< activeKDLChain.getNrOfSegments() << RTT::endlog();
 
+    if(activeKDLChain.getNrOfJoints() != DOFsize){
+        log(Info) << "DOFsize " << DOFsize << " is different from urdf model" << RTT::endlog();
+        assert(false); //TODO
+        return false;
+    }
+
 	jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(activeKDLChain));
 	jnt_to_jac_dot_solver.reset(
 			new KDL::ChainJntToJacDotSolver(activeKDLChain));
@@ -131,7 +137,7 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 	jnt_to_cart_vel_solver.reset(
 			new KDL::ChainFkSolverVel_recursive(activeKDLChain));
 
-    jntPosConfigPlusJntVelConfig_q.resize(activeKDLChain.getNrOfJoints());
+    jntPosConfigPlusJntVelConfig_q.resize(DOFsize);
 
     jac_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
     jacobian_Port.setDataSample(jac_current);
@@ -139,14 +145,16 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
     jac_dot_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
     jacobianDot_Port.setDataSample(jac_dot_current);
 
-    jac_.resize(activeKDLChain.getNrOfJoints());
-    jac_dot_.resize(activeKDLChain.getNrOfJoints());
+    jac_.resize(DOFsize);
+    jac_dot_.resize(DOFsize);
 
     position_Port.setDataSample(cartFrame);
     velocity_Port.setDataSample(velFrame);
 
-    jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
+    jointFB = rstrt::robot::JointState(DOFsize);
     jointFB.angles.fill(0);
+
+    return true;
 }
 
 bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
@@ -205,9 +213,10 @@ bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
 void ForwardKinematics::calculateKinematics(
 		const rstrt::robot::JointState& jointState) {
 
-	jntPosConfigPlusJntVelConfig_q.q.data = jointState.angles.cast<double>();
-	jntPosConfigPlusJntVelConfig_q.qdot.data =
-			jointState.velocities.cast<double>();
+//	jntPosConfigPlusJntVelConfig_q.q.data = jointState.angles.cast<double>();
+//    jntPosConfigPlusJntVelConfig_q.qdot.data = jointState.velocities.cast<double>();
+    this->castEigenVectorFtoD(jointState.angles, jntPosConfigPlusJntVelConfig_q.q.data);
+    this->castEigenVectorFtoD(jointState.velocities, jntPosConfigPlusJntVelConfig_q.qdot.data);
 
 	/* ### execute solver for Jacobian based on velocities */
 	jnt_to_jac_solver->JntToJac(jntPosConfigPlusJntVelConfig_q.q, jac_,
@@ -236,11 +245,8 @@ void ForwardKinematics::calculateKinematics(
 			activeKDLChain.getNrOfSegments());
 
 
-
-    tmp = jac_.data; //TODO: why do we need this workaround?
-    this->castEigenMatrixDtoF(tmp, jacFloat_);
-    tmp = jac_dot_.data; //TODO: why do we need this workaround?
-    this->castEigenMatrixDtoF(tmp, jacFloat_dot_);
+    this->castEigenMatrixDtoF(jac_.data, jacFloat_);
+    this->castEigenMatrixDtoF(jac_dot_.data, jacFloat_dot_);
 
     //convert jacobian to eigen and add constraint
     if(receiveTranslationOnly){

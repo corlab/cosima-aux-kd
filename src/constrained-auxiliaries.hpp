@@ -87,8 +87,8 @@ protected:
     Eigen::MatrixXf jac_MPI;
 
 	// auxiliaries
-    Eigen::MatrixXf identity77, identity66;
-    Eigen::MatrixXf tmpeye77, tmpeye66;
+    Eigen::MatrixXf identityDOFsizeDOFsize, identityTSdimTSdim;
+    Eigen::MatrixXf tmpeyeDOFsizeDOFsize, tmpeyeTSdimTSdim;
 
 
 	/**
@@ -106,35 +106,11 @@ protected:
 	RTT::FlowStatus inertia_Flow;
     Eigen::MatrixXf M;
 
-
-	bool loadURDFAndSRDF(const std::string& URDF_path,
-			const std::string& SRDF_path);
-
-	std::vector<std::string> getKinematicChainNames();
-
-	void selectKinematicChain(const std::string& chainName);
-
     void calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_);
-
     void setDOFsize(unsigned int DOFsize);
 
-	XBot::XBotCoreModel _xbotcore_model;
-
-	std::string activeKinematicChain;
-
-	// KDL stuff
-	KDL::Tree robot_tree;
-
-	KDL::Chain activeKDLChain;
-
-	boost::shared_ptr<KDL::ChainDynParam> id_dyn_solver;
-
-	// Helper tools for KDL
-	KDLParser p;
 
 private:
-	bool _models_loaded;
-	std::string xml_string;
     unsigned int DOFsize;
     bool receiveTranslationOnly;
     unsigned int TaskSpaceDimension;
