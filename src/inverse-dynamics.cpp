@@ -32,6 +32,14 @@ InverseDynamics::InverseDynamics(const std::string &name) :
 			this, RTT::OwnThread).doc("Use the inerati provided by the robot.").arg(
 			"useRobotInertia", "use the inertia from the robot or not.");
 
+    receiveTranslationOnly = true;
+    if(receiveTranslationOnly){
+        TaskSpaceDimension = 3;
+    }
+    else{
+        TaskSpaceDimension = 6;
+    }
+    DOFsize = 7; //TODO
 }
 
 void InverseDynamics::useRobotInertia_func(bool useRobotInertia) {
@@ -40,24 +48,24 @@ void InverseDynamics::useRobotInertia_func(bool useRobotInertia) {
 
 void InverseDynamics::updateHook() {
 
-	jointFB_Flow = jointFB_Port.read(jointFB);
-	if (jointFB_Flow == RTT::NewData) {
-		calculateKinematics(jointFB);
-	}
+    jointFB_Flow = jointFB_Port.read(jointFB);
+    if (jointFB_Flow == RTT::NewData) {
+        calculateDynamics(jointFB);
+    }
 
-	if (useRobotInertia) {
-		robotInertia_Flow = robotInertia_Port.read(M);
-		if (robotInertia_Flow != RTT::NoData) {
-			inertia_Port.write(M);
-		}
-	}
+    if (useRobotInertia) {
+        robotInertia_Flow = robotInertia_Port.read(inertia);
+        if (robotInertia_Flow != RTT::NoData) {
+            inertia_Port.write(inertia);
+        }
+    }
 
-	if (jointFB_Flow != RTT::NoData) {
-		if (!useRobotInertia) {
-			inertia_Port.write(M);
-		}
-		h_Port.write(h.cast<float>());
-	}
+    if (jointFB_Flow != RTT::NoData) {
+        if (!useRobotInertia) {
+            inertia_Port.write(inertia);
+        }
+        h_Port.write(h);
+    }
 }
 
 bool InverseDynamics::startHook() {
@@ -110,17 +118,21 @@ void InverseDynamics::selectKinematicChain(const std::string& chainName) {
 
 	jntPosConfigPlusJntVelConfig_q.resize(activeKDLChain.getNrOfJoints());
 
-	M.resize(activeKDLChain.getNrOfJoints());
-	inertia_Port.setDataSample(M);
+    gravity = Eigen::VectorXf(DOFsize,1);
+    coriolis = Eigen::VectorXf(DOFsize,1);
 
-	h.resize(activeKDLChain.getNrOfJoints());
-	h_Port.setDataSample(h.cast<float>());
+    inertia = Eigen::MatrixXf(DOFsize,DOFsize);
+    inertia_Port.setDataSample(inertia);
 
-	C_.resize(activeKDLChain.getNrOfJoints());
-	G_.resize(activeKDLChain.getNrOfJoints());
+    h = Eigen::VectorXf(DOFsize);
+    h_Port.setDataSample(h);
 
-	jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
-	jointFB.angles.fill(0);
+    M.resize(activeKDLChain.getNrOfJoints());
+    C_.resize(activeKDLChain.getNrOfJoints());
+    G_.resize(activeKDLChain.getNrOfJoints());
+
+    jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
+    jointFB.angles.fill(0);
 }
 
 bool InverseDynamics::loadURDFAndSRDF(const std::string &URDF_path,
@@ -176,12 +188,13 @@ bool InverseDynamics::loadURDFAndSRDF(const std::string &URDF_path,
 	return _models_loaded;
 }
 
-void InverseDynamics::calculateKinematics(
+void InverseDynamics::calculateDynamics(
 		const rstrt::robot::JointState& jointState) {
 
-	jntPosConfigPlusJntVelConfig_q.q.data = jointState.angles.cast<double>();
-	jntPosConfigPlusJntVelConfig_q.qdot.data =
-			jointState.velocities.cast<double>();
+//	jntPosConfigPlusJntVelConfig_q.q.data = jointState.angles.cast<double>();
+//    jntPosConfigPlusJntVelConfig_q.qdot.data = jointState.velocities.cast<double>();
+    this->castEigenVectorFtoD(jointState.angles, jntPosConfigPlusJntVelConfig_q.q.data);
+    this->castEigenVectorFtoD(jointState.velocities, jntPosConfigPlusJntVelConfig_q.qdot.data);
 
 	/* ### execute solver for Jacobian based on velocities */
 	if (!useRobotInertia) {
@@ -191,8 +204,30 @@ void InverseDynamics::calculateKinematics(
 	id_dyn_solver->JntToCoriolis(jntPosConfigPlusJntVelConfig_q.q,
 			jntPosConfigPlusJntVelConfig_q.qdot, C_);
 
-	h = C_.data + G_.data;
+
+    this->castEigenMatrixDtoF(M.data, inertia);
+    this->castEigenVectorDtoF(G_.data, gravity);
+    this->castEigenVectorDtoF(C_.data, coriolis);
+
+    h = coriolis + gravity;
 }
+
+void InverseDynamics::castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f) {
+    f = d.cast <float> ();
+}
+
+void InverseDynamics::castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d) {
+    d = f.cast <double> ();
+}
+
+void InverseDynamics::castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f) {
+    f = d.cast <float> ();
+}
+
+void InverseDynamics::castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d) {
+    d = f.cast <double> ();
+}
+
 
 ORO_LIST_COMPONENT_TYPE(cosima::InverseDynamics)
 

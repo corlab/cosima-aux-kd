@@ -69,11 +69,12 @@ protected:
 	/**
 	 * OutputPorts publish data.
 	 */
-	RTT::OutputPort<KDL::Jacobian> jacobian_Port;
-	RTT::OutputPort<KDL::Jacobian> jacobianDot_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacobian_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacobianDot_Port;
 
 	RTT::OutputPort<KDL::Frame> position_Port;
 	RTT::OutputPort<KDL::FrameVel> velocity_Port;
+    RTT::OutputPort<rstrt::kinematics::JointVelocities> in_currentJntVelocity_port;
 
 	/**
 	 * InputPorts read data.
@@ -90,6 +91,11 @@ protected:
 	void selectKinematicChain(const std::string& chainName);
 
 	void calculateKinematics(const rstrt::robot::JointState& jointState);
+
+    void castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f);
+    void castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d);
+    void castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f);
+    void castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d);
 
 	XBot::XBotCoreModel _xbotcore_model;
 
@@ -109,6 +115,10 @@ protected:
 
 	KDL::Jacobian jac_;
 	KDL::Jacobian jac_dot_;
+    Eigen::MatrixXf jacFloat_;
+    Eigen::MatrixXf jacFloat_dot_;
+    Eigen::MatrixXf jac_current;
+    Eigen::MatrixXf jac_dot_current;
 	KDL::Frame cartFrame;
 	KDL::FrameVel velFrame;
 
@@ -118,6 +128,10 @@ protected:
 private:
 	bool _models_loaded;
 	std::string xml_string;
+    unsigned int DOFsize;
+    bool receiveTranslationOnly;
+    unsigned int TaskSpaceDimension;
+    Eigen::MatrixXd tmp;//TODO: why do we need this workaround?
 };
 
 }

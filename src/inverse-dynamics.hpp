@@ -71,7 +71,7 @@ protected:
 	/**
 	 * OutputPorts publish data.
 	 */
-	RTT::OutputPort<KDL::JntSpaceInertiaMatrix> inertia_Port;
+    RTT::OutputPort<Eigen::MatrixXf> inertia_Port;
 	RTT::OutputPort<Eigen::VectorXf> h_Port;
 
 	/**
@@ -82,7 +82,7 @@ protected:
 	rstrt::robot::JointState jointFB;
 
 	// inertia from robot
-	RTT::InputPort<KDL::JntSpaceInertiaMatrix> robotInertia_Port;
+    RTT::InputPort<Eigen::MatrixXf> robotInertia_Port;
 	RTT::FlowStatus robotInertia_Flow;
 	bool useRobotInertia;
 
@@ -93,11 +93,20 @@ protected:
 
 	void selectKinematicChain(const std::string& chainName);
 
-	void calculateKinematics(const rstrt::robot::JointState& jointState);
+    void calculateDynamics(const rstrt::robot::JointState& jointState);
+
+    void castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f);
+    void castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d);
+    void castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f);
+    void castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d);
 
 	XBot::XBotCoreModel _xbotcore_model;
 
 	std::string activeKinematicChain;
+
+    Eigen::MatrixXf inertia;
+    Eigen::VectorXf gravity;
+    Eigen::VectorXf coriolis;
 
 	// KDL stuff
 	KDL::Tree robot_tree;
@@ -107,7 +116,7 @@ protected:
 	KDL::JntSpaceInertiaMatrix M;
 	KDL::JntArray C_;
 	KDL::JntArray G_;
-	Eigen::VectorXd h;
+    Eigen::VectorXf h;
 
 
 	KDL::Vector gravity_vector;
@@ -122,6 +131,9 @@ protected:
 private:
 	bool _models_loaded;
 	std::string xml_string;
+    unsigned int DOFsize;
+    bool receiveTranslationOnly;
+    unsigned int TaskSpaceDimension;
 };
 
 }

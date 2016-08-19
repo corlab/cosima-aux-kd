@@ -71,34 +71,40 @@ protected:
 	 */
 	RTT::OutputPort<Eigen::MatrixXf> p_Port;
 	RTT::OutputPort<Eigen::VectorXf> lambda_constraint_Port;
-	RTT::OutputPort<Eigen::VectorXf> jac_constraint_Port;
+    RTT::OutputPort<Eigen::VectorXf> jac_constraint_Port, jac_Dot_constraint_Port;
 	RTT::OutputPort<Eigen::VectorXf> jac_constraint_mpi_Port;
+    RTT::OutputPort<Eigen::VectorXf> jac_mpi_Port;
 	RTT::OutputPort<Eigen::VectorXf> inertia_constraint_Port;
 	RTT::OutputPort<Eigen::VectorXf> c_constraint_Port;
 
 	// intermediate output
-	Eigen::MatrixXd P;
-	Eigen::MatrixXd Lamda_cstr;
-	Eigen::MatrixXd jac_cstr_, jac_cstr_MPI;
-	Eigen::MatrixXd M_cstr_;
-	Eigen::MatrixXd C_cstr_;
+    Eigen::MatrixXf P;
+    Eigen::MatrixXf Lamda_cstr;
+    Eigen::MatrixXf jac_cstr_, jac_cstr_MPI;
+    Eigen::MatrixXf jac_Dot_cstr_;
+    Eigen::MatrixXf M_cstr_;
+    Eigen::MatrixXf C_cstr_;
+    Eigen::MatrixXf jac_MPI;
 
 	// auxiliaries
-	Eigen::MatrixXd identity77, identity66;
-	Eigen::MatrixXd tmpeye77, tmpeye66;
+    Eigen::MatrixXf identity77, identity66;
+    Eigen::MatrixXf tmpeye77, tmpeye66;
 
 
 	/**
 	 * InputPorts read data.
 	 */
-	RTT::InputPort<KDL::Jacobian> jacobian_Port;
+    RTT::InputPort<Eigen::MatrixXf> jacobian_Port;
+    RTT::InputPort<Eigen::MatrixXf> jacobianDot_Port;
 	RTT::FlowStatus jacobian_Flow;
-	KDL::Jacobian jacobian;
+    RTT::FlowStatus jacobianDot_Flow;
+    Eigen::MatrixXf jacobian;
+    Eigen::MatrixXf jacobianDot;
 
 	// inertia
-	RTT::InputPort<KDL::JntSpaceInertiaMatrix> inertia_Port;
+    RTT::InputPort<Eigen::MatrixXf> inertia_Port;
 	RTT::FlowStatus inertia_Flow;
-	KDL::JntSpaceInertiaMatrix M;
+    Eigen::MatrixXf M;
 
 
 	bool loadURDFAndSRDF(const std::string& URDF_path,
@@ -108,7 +114,7 @@ protected:
 
 	void selectKinematicChain(const std::string& chainName);
 
-	void calculateAuxiliaries(const KDL::Jacobian& jac_, const KDL::JntSpaceInertiaMatrix& M_);
+    void calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_);
 
 	XBot::XBotCoreModel _xbotcore_model;
 
@@ -127,6 +133,9 @@ protected:
 private:
 	bool _models_loaded;
 	std::string xml_string;
+    unsigned int DOFsize;
+    bool receiveTranslationOnly;
+    unsigned int TaskSpaceDimension;
 };
 
 }

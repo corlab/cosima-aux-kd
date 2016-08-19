@@ -10,11 +10,11 @@ using namespace RTT::os;
 using namespace Eigen;
 
 ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
-		TaskContext(name), _models_loaded(false), jacobian_Flow(RTT::NoData), inertia_Port(
+        TaskContext(name), _models_loaded(false), jacobian_Flow(RTT::NoData), jacobianDot_Flow(RTT::NoData), inertia_Port(
 				"inertia"), inertia_Flow(RTT::NoData), jacobian_Port(
-				"jacobian"), p_Port("pMatrix"), lambda_constraint_Port(
-				"lambdaConstrained"), jac_constraint_Port("jacConstrained"), jac_constraint_mpi_Port(
-				"jacConstrainedMPI"), inertia_constraint_Port(
+                "jacobian"), jacobianDot_Port("jacobianDot"),  p_Port("pMatrix"), lambda_constraint_Port(
+                "lambdaConstrained"), jac_constraint_Port("jacConstrained"), jac_Dot_constraint_Port("jacConstrained"),
+        jac_constraint_mpi_Port("jacConstrainedMPI"), jac_mpi_Port("jacMPI"), inertia_constraint_Port(
 				"inertiaConstrained"), c_constraint_Port("cConstrained") {
 
 	this->addOperation("loadURDFAndSRDF",
@@ -33,37 +33,55 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
 	this->ports()->addPort(lambda_constraint_Port).doc("Sending P matrix.");
 	this->ports()->addPort(jac_constraint_Port).doc(
 			"Sending constrained jacobian.");
+    this->ports()->addPort(jac_Dot_constraint_Port).doc(
+            "Sending constrained jacobianDot.");
 	this->ports()->addPort(jac_constraint_mpi_Port).doc(
 			"Sending constrained jacobian MPI.");
+    this->ports()->addPort(jac_mpi_Port).doc(
+            "Sending jacobian MPI.");
 	this->ports()->addPort(inertia_constraint_Port).doc(
 			"Sending constrained inertia.");
 	this->ports()->addPort(c_constraint_Port).doc("Sending constrained C.");
+
+    receiveTranslationOnly = true;
+    if(receiveTranslationOnly){
+        TaskSpaceDimension = 3;
+    }
+    else{
+        TaskSpaceDimension = 6;
+    }
+    DOFsize = 7; //TODO
 }
 
 void ConstrainedAuxiliaries::updateHook() {
 
-	jacobian_Flow = jacobian_Port.read(jacobian);
-	inertia_Flow = inertia_Port.read(M);
-	if ((jacobian_Flow != RTT::NoData) && (inertia_Flow != RTT::NoData)) {
-		if ((jacobian_Flow == RTT::NewData) || (inertia_Flow == RTT::NewData)) {
-			calculateAuxiliaries(jacobian, M);
+    jacobian_Flow = jacobian_Port.read(jacobian);
+    jacobianDot_Flow = jacobianDot_Port.read(jacobianDot);
+    inertia_Flow = inertia_Port.read(M);
+    if ((jacobian_Flow != RTT::NoData) && (inertia_Flow != RTT::NoData)) {
+        if ((jacobian_Flow == RTT::NewData) || (inertia_Flow == RTT::NewData)) {
+            //TODO add Newdata check for jacobianDot!
 
-			// publish items!
-			jac_constraint_Port.write(jac_cstr_.cast<float>());
+            calculateAuxiliaries(jacobian, jacobianDot, M);
 
-			jac_constraint_mpi_Port.write(jac_cstr_MPI.cast<float>());
+            // publish items!
+            jac_constraint_Port.write(jac_cstr_);
+            jac_Dot_constraint_Port.write(jac_Dot_cstr_);
 
-			p_Port.write(P.cast<float>());
+            jac_constraint_mpi_Port.write(jac_cstr_MPI);
+            jac_mpi_Port.write(jac_MPI);
 
-			lambda_constraint_Port.write(Lamda_cstr.cast<float>());
+            p_Port.write(P);
 
-			inertia_constraint_Port.write(M_cstr_.cast<float>());
+            lambda_constraint_Port.write(Lamda_cstr);
 
-			c_constraint_Port.write(C_cstr_.cast<float>());
+            inertia_constraint_Port.write(M_cstr_);
 
-		}
+            c_constraint_Port.write(C_cstr_);
 
-	}
+        }
+
+    }
 }
 
 bool ConstrainedAuxiliaries::startHook() {
@@ -72,6 +90,7 @@ bool ConstrainedAuxiliaries::startHook() {
 
 bool ConstrainedAuxiliaries::configureHook() {
 	jacobian_Flow = RTT::NoData;
+    jacobianDot_Flow = RTT::NoData;
 	inertia_Flow = RTT::NoData;
 	return true;
 }
@@ -88,78 +107,74 @@ std::vector<std::string> ConstrainedAuxiliaries::getKinematicChainNames() {
 
 void ConstrainedAuxiliaries::selectKinematicChain(
 		const std::string& chainName) {
-// Needs to be done in non-real-time only!
+//// Needs to be done in non-real-time only!
 
-	std::vector<std::string> enabled_joints_in_chain;
-	_xbotcore_model.get_enabled_joints_in_chain(chainName,
-			enabled_joints_in_chain);
+//	std::vector<std::string> enabled_joints_in_chain;
+//	_xbotcore_model.get_enabled_joints_in_chain(chainName,
+//			enabled_joints_in_chain);
 
-	RTT::log(RTT::Warning) << "Size of enabled joints: "
-			<< enabled_joints_in_chain.size() << RTT::endlog();
+//	RTT::log(RTT::Warning) << "Size of enabled joints: "
+//			<< enabled_joints_in_chain.size() << RTT::endlog();
 
-// TODO do not hardcode this!
-	if (!p.initTreeAndChainFromURDFString(xml_string, "lwr_arm_base_link",
-			"lwr_arm_7_link", robot_tree, activeKDLChain)) {
-		log(Error) << "[ DLW " << this->getName()
-				<< "] URDF could not be parsed !" << endlog();
+//// TODO do not hardcode this!
+//	if (!p.initTreeAndChainFromURDFString(xml_string, "lwr_arm_base_link",
+//			"lwr_arm_7_link", robot_tree, activeKDLChain)) {
+//		log(Error) << "[ DLW " << this->getName()
+//				<< "] URDF could not be parsed !" << endlog();
 
-		// TODO add proper error handling!
-		return;
-	}
-	_models_loaded = true;
+//		// TODO add proper error handling!
+//		return;
+//	}
+//	_models_loaded = true;
 
-	log(Info) << "[" << this->getName() << "] " << "robot_tree joints: "
-			<< robot_tree.getNrOfJoints() << ", robot_tree segments: "
-			<< robot_tree.getNrOfSegments() << endlog();
+//	log(Info) << "[" << this->getName() << "] " << "robot_tree joints: "
+//			<< robot_tree.getNrOfJoints() << ", robot_tree segments: "
+//			<< robot_tree.getNrOfSegments() << endlog();
 
-	log(Info) << "[" << this->getName() << "] " << " activeKDLChain joints: "
-			<< activeKDLChain.getNrOfJoints() << ", activeKDLChain segments: "
-			<< activeKDLChain.getNrOfSegments() << RTT::endlog();
+//	log(Info) << "[" << this->getName() << "] " << " activeKDLChain joints: "
+//            << DOFsize << ", activeKDLChain segments: "
+//			<< activeKDLChain.getNrOfSegments() << RTT::endlog();
 
-	M.resize(activeKDLChain.getNrOfJoints());
+    M = Eigen::MatrixXf::Zero(DOFsize,DOFsize);
 
-	jacobian.resize(activeKDLChain.getNrOfJoints());
+    jacobian = Eigen::MatrixXf::Zero(TaskSpaceDimension,DOFsize);
+    jacobianDot = Eigen::MatrixXf::Zero(TaskSpaceDimension,DOFsize);
 
-	// TODO use constraint properly...!
-	jac_cstr_.resize(6, 7);
-	jac_constraint_Port.setDataSample(jac_cstr_.cast<float>());
+    // TODO use constraint properly...!
+    jac_cstr_.resize(TaskSpaceDimension, 7);
+    jac_Dot_cstr_.resize(TaskSpaceDimension, 7);
+    jac_constraint_Port.setDataSample(jac_cstr_);
+    jac_Dot_constraint_Port.setDataSample(jac_Dot_cstr_);
 
-	jac_cstr_MPI.resize(7, 6);
-	jac_constraint_mpi_Port.setDataSample(jac_cstr_MPI.cast<float>());
+    jac_cstr_MPI.resize(7, TaskSpaceDimension);
+    jac_MPI.resize(7, TaskSpaceDimension);
+    jac_constraint_mpi_Port.setDataSample(jac_cstr_MPI);
+    jac_mpi_Port.setDataSample(jac_MPI);
 
-	P.resize(activeKDLChain.getNrOfJoints(), activeKDLChain.getNrOfJoints());
-	p_Port.setDataSample(P.cast<float>());
+    P.resize(DOFsize, DOFsize);
+    p_Port.setDataSample(P);
 
-	Lamda_cstr.resize(activeKDLChain.getNrOfJoints() - 1,
-			activeKDLChain.getNrOfJoints() - 1);
-	lambda_constraint_Port.setDataSample(Lamda_cstr.cast<float>());
+    Lamda_cstr.resize(TaskSpaceDimension,TaskSpaceDimension);
+    lambda_constraint_Port.setDataSample(Lamda_cstr);
 
-	M_cstr_.resize(activeKDLChain.getNrOfJoints(),
-			activeKDLChain.getNrOfJoints());
-	inertia_constraint_Port.setDataSample(M_cstr_.cast<float>());
+    M_cstr_.resize(DOFsize, DOFsize);
+    inertia_constraint_Port.setDataSample(M_cstr_);
 
-	C_cstr_.resize(activeKDLChain.getNrOfJoints(),
-			activeKDLChain.getNrOfJoints());
-	c_constraint_Port.setDataSample(C_cstr_.cast<float>());
+    C_cstr_.resize(DOFsize,DOFsize);
+    c_constraint_Port.setDataSample(C_cstr_);
 
-	identity77.resize(activeKDLChain.getNrOfJoints(),
-			activeKDLChain.getNrOfJoints());
-	identity77 = Eigen::MatrixXd::Identity(activeKDLChain.getNrOfJoints(),
-			activeKDLChain.getNrOfJoints());
+    identity77.resize(DOFsize,DOFsize);
+    identity77 = Eigen::MatrixXf::Identity(DOFsize,DOFsize);
 
-	identity66.resize(activeKDLChain.getNrOfJoints() - 1,
-			activeKDLChain.getNrOfJoints() - 1);
-	identity66 = Eigen::MatrixXd::Identity(activeKDLChain.getNrOfJoints() - 1,
-			activeKDLChain.getNrOfJoints() - 1);
+    identity66.resize(TaskSpaceDimension,TaskSpaceDimension);
+    identity66 = Eigen::MatrixXf::Identity(TaskSpaceDimension,TaskSpaceDimension);
 
-	tmpeye77.resize(7, 7);
-	tmpeye66.resize(6, 6);
+    tmpeye77.resize(7, 7);
+    tmpeye66.resize(TaskSpaceDimension, TaskSpaceDimension);
 
-	// TODO ???
-//	tmpeye77 = 0.01 * identity77;
-//	tmpeye66 = 0.01 * identity66;
-	tmpeye77 = identity77;
-	tmpeye66 = identity66;
+    // TODO ???
+    tmpeye77 = 0.0001 * identity77;
+    tmpeye66 = 0.0001 * identity66;
 }
 
 bool ConstrainedAuxiliaries::loadURDFAndSRDF(const std::string &URDF_path,
@@ -215,29 +230,56 @@ bool ConstrainedAuxiliaries::loadURDFAndSRDF(const std::string &URDF_path,
 	return _models_loaded;
 }
 
-void ConstrainedAuxiliaries::calculateAuxiliaries(const KDL::Jacobian& jac_,
-		const KDL::JntSpaceInertiaMatrix& M_) {
+void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_,
+        const Eigen::MatrixXf& M_) {
 
-	// TODO constraint jacobian needs to be moved and need to depend on the constrained matrix!
-//	jac_cstr_ = jac_.data;
-//	jac_cstr_.row(0).setZero();
-//	jac_cstr_.row(1).setZero();
-	jac_cstr_.row(2).setZero();
-//	jac_cstr_.row(3).setZero();
-//	jac_cstr_.row(4).setZero();
-//	jac_cstr_.row(5).setZero();
+    // TODO constraint jacobian needs to be moved and need to depend on the constrained matrix!
+    jac_cstr_ = jac_;
+    jac_Dot_cstr_ = jac_Dot_;
 
-	jac_cstr_MPI = (jac_cstr_.transpose() * jac_cstr_ + tmpeye77).inverse()
-			* jac_cstr_.transpose();
+    if(receiveTranslationOnly){
+        jac_cstr_.row(0).setZero();
+        jac_cstr_.row(1).setZero();
+    //	jac_cstr_.row(2).setZero();
 
-	P = identity77 - (jac_cstr_MPI * jac_cstr_);
+        jac_Dot_cstr_.row(0).setZero();
+        jac_Dot_cstr_.row(1).setZero();
+    //	jac_Dot_cstr_.row(2).setZero();
+    }
+    else{
+        jac_cstr_.row(0).setZero();
+        jac_cstr_.row(1).setZero();
+    //	jac_cstr_.row(2).setZero();
+        jac_cstr_.row(3).setZero();
+        jac_cstr_.row(4).setZero();
+    //	jac_cstr_.row(5).setZero();
 
-	M_cstr_ = P * M_.data + identity77 - P;
+        jac_Dot_cstr_.row(0).setZero();
+        jac_Dot_cstr_.row(1).setZero();
+    //	jac_Dot_cstr_.row(2).setZero();
+        jac_Dot_cstr_.row(3).setZero();
+        jac_Dot_cstr_.row(4).setZero();
+    //	jac_Dot_cstr_.row(5).setZero();
+    }
 
-	C_cstr_ = -(jac_cstr_MPI * jac_cstr_);
+    //Eq. under Eq. 10
+    jac_cstr_MPI = (jac_cstr_.transpose() * jac_cstr_ + tmpeye77).inverse() * jac_cstr_.transpose();
 
-	Lamda_cstr = (jac_.data * M_cstr_.inverse() * P * jac_.data.transpose()
-			+ tmpeye66).inverse();
+    //Eq. under Eq. 10
+    P = identity77 - (jac_cstr_MPI * jac_cstr_);
+
+    //Eq. under Eq. 11
+    M_cstr_ = P * M_ + identity77 - P;
+
+    //Eq. under Eq. 11
+    //C_cstr_ = -(jac_cstr_MPI * jac_cstr_); //TODO which one is correct???
+    C_cstr_ = -(jac_cstr_MPI * jac_Dot_cstr_); //TODO
+
+    //Eq. under Eq. 11
+    Lamda_cstr = (jac_ * M_cstr_.inverse() * P * jac_.transpose() + tmpeye66).inverse();
+
+    //Eq. 14
+    jac_MPI = (jac_ * M_cstr_.inverse() * P * jac_.transpose()).inverse() * jac_ * M_cstr_.inverse() * P;
 }
 
 ORO_LIST_COMPONENT_TYPE(cosima::ConstrainedAuxiliaries)

@@ -34,26 +34,37 @@ ForwardKinematics::ForwardKinematics(const std::string &name) :
 
 	this->ports()->addPort(jointFB_Port).doc("Receiving joint feedback.");
 
+    receiveTranslationOnly = true;
+    if(receiveTranslationOnly){
+        TaskSpaceDimension = 3;
+    }
+    else{
+        TaskSpaceDimension = 6;
+    }
+    DOFsize = 7; //TODO
+
+    jacFloat_= Eigen::MatrixXf(6,DOFsize); //allways 6 rows
+    jacFloat_dot_ = Eigen::MatrixXf(6,DOFsize); //allways 6 rows
 }
 
 void ForwardKinematics::updateHook() {
 
-	jointFB_Flow = jointFB_Port.read(jointFB);
-	if (jointFB_Flow == RTT::NewData) {
-		calculateKinematics(jointFB);
-	}
+    jointFB_Flow = jointFB_Port.read(jointFB);
+    if (jointFB_Flow == RTT::NewData) {
+        calculateKinematics(jointFB);
+    }
 
-	if (jointFB_Flow != RTT::NoData) {
+    if (jointFB_Flow != RTT::NoData) {
 
-		jacobian_Port.write(jac_);
-		jacobianDot_Port.write(jac_dot_);
+        jacobian_Port.write(jac_current);
+        jacobianDot_Port.write(jac_dot_current);
 
-		position_Port.write(cartFrame);
+        position_Port.write(cartFrame);
 //		RTT::log(RTT::Error) << "Cart. Pos: " << cartFrame << RTT::endlog();
 
-		velocity_Port.write(velFrame);
+        velocity_Port.write(velFrame);
 
-	}
+    }
 }
 
 bool ForwardKinematics::startHook() {
@@ -114,18 +125,22 @@ void ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 	jnt_to_cart_vel_solver.reset(
 			new KDL::ChainFkSolverVel_recursive(activeKDLChain));
 
-	jntPosConfigPlusJntVelConfig_q.resize(activeKDLChain.getNrOfJoints());
-	jac_.resize(activeKDLChain.getNrOfJoints());
-	jacobian_Port.setDataSample(jac_);
+    jntPosConfigPlusJntVelConfig_q.resize(activeKDLChain.getNrOfJoints());
 
-	jac_dot_.resize(activeKDLChain.getNrOfJoints());
-	jacobianDot_Port.setDataSample(jac_dot_);
+    jac_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
+    jacobian_Port.setDataSample(jac_current);
 
-	position_Port.setDataSample(cartFrame);
-	velocity_Port.setDataSample(velFrame);
+    jac_dot_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
+    jacobianDot_Port.setDataSample(jac_dot_current);
 
-	jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
-	jointFB.angles.fill(0);
+    jac_.resize(activeKDLChain.getNrOfJoints());
+    jac_dot_.resize(activeKDLChain.getNrOfJoints());
+
+    position_Port.setDataSample(cartFrame);
+    velocity_Port.setDataSample(velFrame);
+
+    jointFB = rstrt::robot::JointState(activeKDLChain.getNrOfJoints());
+    jointFB.angles.fill(0);
 }
 
 bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
@@ -214,6 +229,61 @@ void ForwardKinematics::calculateKinematics(
 	jnt_to_cart_vel_solver->JntToCart(jntPosConfigPlusJntVelConfig_q, velFrame,
 			activeKDLChain.getNrOfSegments());
 
+
+
+    tmp = jac_.data; //TODO: why do we need this workaround?
+    this->castEigenMatrixDtoF(tmp, jacFloat_);
+    tmp = jac_dot_.data; //TODO: why do we need this workaround?
+    this->castEigenMatrixDtoF(tmp, jacFloat_dot_);
+
+    //convert jacobian to eigen and add constraint
+    if(receiveTranslationOnly){
+        jac_current = jacFloat_.topRows<3>();
+        jac_dot_current = jacFloat_dot_.topRows<3>();
+
+    //    jac_current.row(0).setZero();
+    //    jac_current.row(1).setZero();
+        jac_current.row(2).setZero();
+
+    //    jac_dot_current.row(0).setZero();
+    //    jac_dot_current.row(1).setZero();
+        jac_dot_current.row(2).setZero();
+    }
+    else{
+        jac_current = jacFloat_;
+        jac_dot_current = jacFloat_dot_;
+
+    //    jac_current.row(0).setZero();
+    //    jac_current.row(1).setZero();
+        jac_current.row(2).setZero();
+    //    jac_current.row(3).setZero();
+    //    jac_current.row(4).setZero();
+        jac_current.row(5).setZero();
+
+    //    jac_dot_current.row(0).setZero();
+    //    jac_dot_current.row(1).setZero();
+        jac_dot_current.row(2).setZero();
+    //    jac_dot_current.row(3).setZero();
+    //    jac_dot_current.row(4).setZero();
+        jac_dot_current.row(5).setZero();
+    }
+
+}
+
+void ForwardKinematics::castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f) {
+    f = d.cast <float> ();
+}
+
+void ForwardKinematics::castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d) {
+    d = f.cast <double> ();
+}
+
+void ForwardKinematics::castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f) {
+    f = d.cast <float> ();
+}
+
+void ForwardKinematics::castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d) {
+    d = f.cast <double> ();
 }
 
 ORO_CREATE_COMPONENT_LIBRARY()
