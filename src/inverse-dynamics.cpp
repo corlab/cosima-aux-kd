@@ -41,7 +41,6 @@ InverseDynamics::InverseDynamics(const std::string &name) :
     else{
         TaskSpaceDimension = 6;
     }
-    DOFsize = 7; //TODO
 }
 
 void InverseDynamics::setDOFsize(unsigned int DOFsize){

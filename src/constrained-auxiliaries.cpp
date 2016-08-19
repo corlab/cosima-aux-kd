@@ -52,7 +52,6 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(const std::string &name) :
     else{
         TaskSpaceDimension = 6;
     }
-    DOFsize = 7; //TODO
 }
 
 void ConstrainedAuxiliaries::setDOFsize(unsigned int DOFsize){
