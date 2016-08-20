@@ -59,13 +59,13 @@ public:
 
 	bool treeFromXml(TiXmlDocument *xml_doc, KDL::Tree& tree);
 
-	bool treeFromUrdfModel(std::shared_ptr<urdf::ModelInterface> robot_model,
+	bool treeFromUrdfModel(boost::shared_ptr<urdf::ModelInterface> robot_model,
 			KDL::Tree& tree);
 
-	std::shared_ptr<urdf::ModelInterface> parseURDF(
+	boost::shared_ptr<urdf::ModelInterface> parseURDF(
 			const std::string &xml_string);
 
-	std::shared_ptr<urdf::ModelInterface> parseURDFFile(
+	boost::shared_ptr<urdf::ModelInterface> parseURDFFile(
 			const std::string &path);
 
 	bool initTreeAndChainFromURDFString(const std::string& urdfString,
@@ -78,9 +78,9 @@ private:
 	KDL::Vector toKdl(urdf::Vector3 v);
 	KDL::Rotation toKdl(urdf::Rotation r);
 	KDL::Frame toKdl(urdf::Pose p);
-	KDL::Joint toKdl(std::shared_ptr<urdf::Joint> jnt);
-	KDL::RigidBodyInertia toKdl(std::shared_ptr<urdf::Inertial> i);
-	bool addChildrenToTree(std::shared_ptr<const urdf::Link> root,
+	KDL::Joint toKdl(boost::shared_ptr<urdf::Joint> jnt);
+	KDL::RigidBodyInertia toKdl(boost::shared_ptr<urdf::Inertial> i);
+	bool addChildrenToTree(boost::shared_ptr<const urdf::Link> root,
 			KDL::Tree& tree);
 	bool parsePose(urdf::Pose &pose, TiXmlElement* xml);
 	bool parseInertial(urdf::Inertial &i, TiXmlElement *config);
