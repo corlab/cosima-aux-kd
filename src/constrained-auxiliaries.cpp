@@ -196,8 +196,7 @@ void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, c
 //    RTT::log(RTT::Warning) << "M_cstr_\n" << M_cstr_ << RTT::endlog();
 
     //Eq. under Eq. 11
-    //C_cstr_ = -(jac_cstr_MPI * jac_cstr_); //TODO which one is correct???
-    C_cstr_ = -(jac_cstr_MPI * jac_Dot_cstr_); //TODO
+    C_cstr_ = -(jac_cstr_MPI * jac_Dot_cstr_);
 
 //    RTT::log(RTT::Warning) << "C_cstr_\n" << C_cstr_ << RTT::endlog();
 

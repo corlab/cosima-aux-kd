@@ -17,6 +17,9 @@ gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 loadComponent("coman_gazebo","cogimon::robotSim")
 setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
 
+var string path_world = "/home/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+#var string path_world = "/home/ndehio/wbmc/orocos-stuff/scenarios/IITworkshopExperiment2.world"
+gazebo.world_path = path_world
 
 gazebo.configure()
 gazebo.start()
@@ -25,31 +28,32 @@ gazebo.toggleDynamicsSimulation(false)
 gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
 
 coman_gazebo.getModel("kuka")
+var int DOFsize = 7;
 
-var string path_world = "/home/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+
 var string path_model_urdf = "/home/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf"
 var string path_model_srdf = "/home/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf"
 coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 
-gazebo.world_path = path_world
+
 
 coman_gazebo.configure()
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
-fkin.setDOFsize(7);
+fkin.setDOFsize(DOFsize);
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
-idyn.setDOFsize(7);
+idyn.setDOFsize(DOFsize);
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
-caux.setDOFsize(7);
+caux.setDOFsize(DOFsize);
 caux.configure()
 
 
@@ -63,8 +67,9 @@ trajectorygenerator.configure()
 # load PositionController
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
-positioncontroller.setDOFsize(7);
-positioncontroller.configure()
+positioncontroller.setDOFsize(DOFsize);
+positioncontroller.setGains(100,20);
+positioncontroller.configure();
 
 # connect TrajectoryGenerator to PositionController
 var ConnPolicy cp_traj_posCtrl;
@@ -76,8 +81,9 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 # load NullspaceController
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
-nullspacecontroller.setDOFsize(7);
-var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(7)
+nullspacecontroller.setDOFsize(DOFsize);
+nullspacecontroller.setGains(1,0);
+var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
 desJointAngles.angles[0] = 0.0410
 desJointAngles.angles[1] = 0.0606 
 desJointAngles.angles[2] = -0.0154
@@ -92,7 +98,7 @@ nullspacecontroller.configure()
 # load TorqueSuperimposer
 loadComponent("torquesuperimposer", "TorqueSuperimposer")
 setActivity("torquesuperimposer",0.01,29,ORO_SCHED_OTHER)
-torquesuperimposer.setDOFsize(7);
+torquesuperimposer.setDOFsize(DOFsize);
 torquesuperimposer.configure()
 
 # connect PositionController to TorqueSuperimposer
