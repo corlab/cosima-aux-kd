@@ -111,7 +111,7 @@ protected:
     Eigen::MatrixXf jacDot_full;
     Eigen::MatrixXf M;
 
-    void calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jac_full_, const Eigen::MatrixXf& jacDot_full_);
+    void calculateAuxiliaries(const Eigen::MatrixXf& jac_task, const Eigen::MatrixXf& jac_Dot_task, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jac_full_, const Eigen::MatrixXf& jacDot_full_);
     void setDOFsize(unsigned int DOFsize);
 
 

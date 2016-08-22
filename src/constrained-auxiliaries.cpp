@@ -149,7 +149,7 @@ bool ConstrainedAuxiliaries::configureHook() {
 	return true;
 }
 
-void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, const Eigen::MatrixXf& jac_Dot_, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jac_full_, const Eigen::MatrixXf& jacDot_full_) {
+void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_task, const Eigen::MatrixXf& jac_Dot_task, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jac_full_, const Eigen::MatrixXf& jacDot_full_) {
 
     // TODO cstr jac needs to be moved and need to depend on the constrained matrix!
     jac_cstr_ = jac_full_;
@@ -201,13 +201,13 @@ void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_, c
 //    RTT::log(RTT::Warning) << "C_cstr_\n" << C_cstr_ << RTT::endlog();
 
     //Eq. under Eq. 11
-    Lamda_cstr = (jac_ * M_cstr_.inverse() * P * jac_.transpose() + tmpeyeTSdimTSdim).inverse();
+    Lamda_cstr = (jac_task * M_cstr_.inverse() * P * jac_task.transpose() + tmpeyeTSdimTSdim).inverse();
 
 //    RTT::log(RTT::Warning) << "Lamda_cstr\n" << Lamda_cstr << RTT::endlog();
 
     //Eq. 14
-    //jac_MPI = (jac_ * M_cstr_.inverse() * P * jac_.transpose() + tmpeyeTSdimTSdim).inverse() * jac_ * M_cstr_.inverse() * P;
-    jac_MPI = Lamda_cstr * jac_ * M_cstr_.inverse() * P;
+    //jac_MPI = (jac_task * M_cstr_.inverse() * P * jac_task.transpose() + tmpeyeTSdimTSdim).inverse() * jac_task * M_cstr_.inverse() * P;
+    jac_MPI = Lamda_cstr * jac_task * M_cstr_.inverse() * P;
 
 //    RTT::log(RTT::Warning) << "jac_MPI\n" << jac_MPI << RTT::endlog();
 }
