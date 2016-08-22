@@ -10,8 +10,8 @@ using namespace RTT::os;
 using namespace Eigen;
 
 ForwardKinematics::ForwardKinematics(const std::string &name) :
-		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), jac_Port(
-				"jac"), jacDot_Port("jacDot"), position_Port(
+        TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), jac_task_Port(
+                "jac_task"), jacDot_task_Port("jacDot_task"), position_Port(
 				"position"), velocity_Port("velocity"), jointFB_Port("jointFB"),
                                                     out_jointFB_Port("out_jointFB"),
 jac_full_Port("jac_full"),
@@ -26,9 +26,9 @@ jacDot_full_Port("jacDot_full"){
 
     this->addOperation("setDOFsize", &ForwardKinematics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
 
-    this->ports()->addPort(jac_Port).doc("Sending calculated jac.");
+    this->ports()->addPort(jac_task_Port).doc("Sending calculated jac.");
 
-    this->ports()->addPort(jacDot_Port).doc(
+    this->ports()->addPort(jacDot_task_Port).doc(
             "Sending calculated jac dot.");
 
     this->ports()->addPort(jac_full_Port).doc(
@@ -77,8 +77,8 @@ void ForwardKinematics::updateHook() {
 
     if (jointFB_Flow != RTT::NoData) {
 
-        jac_Port.write(jac_task);
-        jacDot_Port.write(jacDot_task);
+        jac_task_Port.write(jac_task);
+        jacDot_task_Port.write(jacDot_task);
         jac_full_Port.write(jac_full);
         jacDot_full_Port.write(jacDot_full);
 
@@ -181,10 +181,10 @@ bool ForwardKinematics::selectKinematicChain(const std::string& chainName) {
     jntPosConfigPlusJntVelConfig_q.resize(DOFsize);
 
     jac_task = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
-    jac_Port.setDataSample(jac_task);
+    jac_task_Port.setDataSample(jac_task);
 
     jacDot_task = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
-    jacDot_Port.setDataSample(jacDot_task);
+    jacDot_task_Port.setDataSample(jacDot_task);
     jac_full = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
     jac_full_Port.setDataSample(jac_full);
     jacDot_full = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);

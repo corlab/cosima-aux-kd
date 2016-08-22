@@ -68,7 +68,7 @@ trajectorygenerator.configure()
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
-positioncontroller.setGains(100,20);
+positioncontroller.setGains(20,0.8);
 positioncontroller.configure();
 
 # connect TrajectoryGenerator to PositionController
@@ -82,7 +82,7 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
-nullspacecontroller.setGains(1,0);
+nullspacecontroller.setGains(10,0);
 var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
 desJointAngles.angles[0] = 0.0410
 desJointAngles.angles[1] = 0.0606 
@@ -93,6 +93,17 @@ desJointAngles.angles[5] = 1.1377
 desJointAngles.angles[6] = 0.0 
 nullspacecontroller.setDesiredAngles(desJointAngles)
 nullspacecontroller.configure()
+
+# load Constrained ForceController
+loadComponent("forcecontroller", "ConstrainedForceController")
+setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
+forcecontroller.setDOFsize(DOFsize);
+var eigen_vector lambda = eigen_vector(3);
+lambda[0] = 0
+lambda[1] = 0
+lambda[2] = -5
+forcecontroller.setLambda(lambda);
+forcecontroller.configure()
 
 
 # load TorqueSuperimposer
@@ -109,30 +120,38 @@ connect("positioncontroller.out_torques_port", "torquesuperimposer.in_torquesA_p
 var ConnPolicy cp_null_sum;
 connect("nullspacecontroller.out_torques_port", "torquesuperimposer.in_torquesB_port", cp_null_sum)
 
+# connect ForceController to TorqueSuperimposer
+var ConnPolicy cp_force_sum;
+connect("forcecontroller.out_torques_port", "torquesuperimposer.in_torquesC_port", cp_force_sum)
+
 
 # connect all auxiliaries
 var ConnPolicy cp_aux;
 connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
 connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
 
-connect("fkin.jac", "caux.jac", cp_aux)
+
+connect("fkin.jac_task", "caux.jac", cp_aux)
 connect("fkin.jac_full", "caux.jac_full", cp_aux)
-connect("fkin.jacDot", "caux.jacDot", cp_aux)
+connect("fkin.jacDot_task", "caux.jacDot", cp_aux)
 connect("fkin.jacDot_full", "caux.jacDot_full", cp_aux)
 connect("idyn.inertia", "caux.inertia", cp_aux)
+connect("idyn.inertia", "forcecontroller.in_inertia_port", cp_aux)
+connect("idyn.hVector", "forcecontroller.in_h_port", cp_aux)
 
 ###
 # connect AUX to PositionController
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("fkin.jac", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("fkin.jacDot", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("fkin.jac_task", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.jacDot_task", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
 connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
 connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
 
 connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
+connect("fkin.out_jointFB", "forcecontroller.in_robotstatus_port", cp_aux_positioncontroller)
 
 # dynamics part
 connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontroller)
@@ -144,12 +163,18 @@ connect("caux.pMatrix", "positioncontroller.in_P_port", cp_aux_positioncontrolle
 connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
 
+
+connect("caux.jac_cstr", "forcecontroller.in_jacobian_c_port", cp_aux_positioncontroller)
+connect("caux.cConstrained", "forcecontroller.in_Cc_port", cp_aux_positioncontroller)
+connect("caux.inertiaConstrained", "forcecontroller.in_inertia_c_port", cp_aux_positioncontroller)
+connect("caux.pMatrix", "forcecontroller.in_p_port", cp_aux_positioncontroller)
+
 ###
 # connect AUX to NullspaceController
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("fkin.jac", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("fkin.jac_task", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
 connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
@@ -178,6 +203,7 @@ caux.start()
 trajectorygenerator.start()
 positioncontroller.start()
 nullspacecontroller.start()
+forcecontroller.start()
 torquesuperimposer.start()
 
 #generate graph file

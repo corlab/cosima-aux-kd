@@ -69,9 +69,9 @@ protected:
 	/**
 	 * OutputPorts publish data.
 	 */
-    RTT::OutputPort<Eigen::MatrixXf> jac_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jac_task_Port;
     RTT::OutputPort<Eigen::MatrixXf> jac_full_Port;
-    RTT::OutputPort<Eigen::MatrixXf> jacDot_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacDot_task_Port;
     RTT::OutputPort<Eigen::MatrixXf> jacDot_full_Port;
 
     RTT::OutputPort<Eigen::VectorXf> position_Port;
