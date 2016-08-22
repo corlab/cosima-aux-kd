@@ -101,6 +101,7 @@ protected:
     void castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d);
     void castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f);
     void castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d);
+    bool exists_test(const std::string& name);
 
 	XBot::XBotCoreModel _xbotcore_model;
 

@@ -156,7 +156,8 @@ bool InverseDynamics::loadURDFAndSRDF(const std::string &URDF_path,
 
 		RTT::log(RTT::Info) << "URDF path: " << _urdf_path << RTT::endlog();
 		RTT::log(RTT::Info) << "SRDF path: " << _srdf_path << RTT::endlog();
-
+        assert(exists_test(_urdf_path) == true);
+        assert(exists_test(_srdf_path) == true);
 		_models_loaded = _xbotcore_model.init(_urdf_path, _srdf_path);
 
 		for (unsigned int i = 0; i < _xbotcore_model.get_chain_names().size();
@@ -241,6 +242,14 @@ void InverseDynamics::castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::Matr
     d = f.cast <double> ();
 }
 
+bool InverseDynamics::exists_test(const std::string& name) {
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 ORO_LIST_COMPONENT_TYPE(cosima::InverseDynamics)
 

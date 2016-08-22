@@ -10,42 +10,42 @@ using namespace RTT::os;
 using namespace Eigen;
 
 ForwardKinematics::ForwardKinematics(const std::string &name) :
-		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), jacobian_Port(
-				"jacobian"), jacobianDot_Port("jacobianDot"), position_Port(
+		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), jac_Port(
+				"jac"), jacDot_Port("jacDot"), position_Port(
 				"position"), velocity_Port("velocity"), jointFB_Port("jointFB"),
                                                     out_jointFB_Port("out_jointFB"),
-jacobianOriginal_Port("jacobianOriginal"),
-jacobianDotOriginal_Port("jacobianDotOriginal"){
+jac_full_Port("jac_full"),
+jacDot_full_Port("jacDot_full"){
 
-	this->addOperation("loadURDFAndSRDF", &ForwardKinematics::loadURDFAndSRDF,
-			this, RTT::ClientThread);
+    this->addOperation("loadURDFAndSRDF", &ForwardKinematics::loadURDFAndSRDF,
+            this, RTT::ClientThread);
 
-	this->addOperation("getKinematicChainNames",
-			&ForwardKinematics::getKinematicChainNames, this,
-			RTT::ClientThread);
+    this->addOperation("getKinematicChainNames",
+            &ForwardKinematics::getKinematicChainNames, this,
+            RTT::ClientThread);
 
     this->addOperation("setDOFsize", &ForwardKinematics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
 
-	this->ports()->addPort(jacobian_Port).doc("Sending calculated jacobian.");
+    this->ports()->addPort(jac_Port).doc("Sending calculated jac.");
 
-            this->ports()->addPort(out_jointFB_Port).doc("Forward robot joint feedback.");
+    this->ports()->addPort(jacDot_Port).doc(
+            "Sending calculated jac dot.");
 
-	this->ports()->addPort(jacobianDot_Port).doc(
-			"Sending calculated jacobian dot.");
+    this->ports()->addPort(jac_full_Port).doc(
+            "Sending calculated jac full.");
 
-    this->ports()->addPort(jacobianOriginal_Port).doc(
-            "Sending calculated jacobian original.");
+    this->ports()->addPort(jacDot_full_Port).doc(
+            "Sending calculated jac dot full.");
 
-    this->ports()->addPort(jacobianDotOriginal_Port).doc(
-            "Sending calculated jacobian dot original.");
+    this->ports()->addPort(position_Port).doc(
+            "Sending calculated cartesian position.");
 
-	this->ports()->addPort(position_Port).doc(
-			"Sending calculated cartesian position.");
+    this->ports()->addPort(velocity_Port).doc(
+            "Sending calculated cartesian velocity.");
 
-	this->ports()->addPort(velocity_Port).doc(
-			"Sending calculated cartesian velocity.");
+    this->ports()->addPort(jointFB_Port).doc("Receiving joint feedback.");
 
-	this->ports()->addPort(jointFB_Port).doc("Receiving joint feedback.");
+    this->ports()->addPort(out_jointFB_Port).doc("Forward robot joint feedback.");
 
     receiveTranslationOnly = true;
     if(receiveTranslationOnly){
@@ -57,8 +57,8 @@ jacobianDotOriginal_Port("jacobianDotOriginal"){
 
     cartPosFloat = Eigen::VectorXf(TaskSpaceDimension);
     cartVelFloat = Eigen::VectorXf(TaskSpaceDimension);
-    jacFloat_= Eigen::MatrixXf(6,DOFsize); //allways 6 rows
-    jacFloat_dot_ = Eigen::MatrixXf(6,DOFsize); //allways 6 rows
+    jacFloat= Eigen::MatrixXf(6,DOFsize); //allways 6 rows
+    jacDotFloat = Eigen::MatrixXf(6,DOFsize); //allways 6 rows
 }
 
 void ForwardKinematics::setDOFsize(unsigned int DOFsize){
@@ -75,10 +75,10 @@ void ForwardKinematics::updateHook() {
 
     if (jointFB_Flow != RTT::NoData) {
 
-        jacobian_Port.write(jac_current);
-        jacobianDot_Port.write(jac_dot_current);
-        jacobianOriginal_Port.write(jac_original_current);
-        jacobianDotOriginal_Port.write(jac_dot_original_current);
+        jac_Port.write(jac_task);
+        jacDot_Port.write(jacDot_task);
+        jac_full_Port.write(jac_full);
+        jacDot_full_Port.write(jacDot_full);
 
         if(receiveTranslationOnly){
             cartPosFloat(0) = cartFrame.p.x();
@@ -169,7 +169,7 @@ bool ForwardKinematics::selectKinematicChain(const std::string& chainName) {
     }
 
 	jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(activeKDLChain));
-	jnt_to_jac_dot_solver.reset(
+	jnt_to_jacDot_solver.reset(
 			new KDL::ChainJntToJacDotSolver(activeKDLChain));
 	jnt_to_cart_pos_solver.reset(
 			new KDL::ChainFkSolverPos_recursive(activeKDLChain));
@@ -178,18 +178,18 @@ bool ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 
     jntPosConfigPlusJntVelConfig_q.resize(DOFsize);
 
-    jac_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
-    jacobian_Port.setDataSample(jac_current);
+    jac_task = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
+    jac_Port.setDataSample(jac_task);
 
-    jac_dot_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
-    jacobianDot_Port.setDataSample(jac_dot_current);
-    jac_original_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
-    jacobianOriginal_Port.setDataSample(jac_original_current);
-    jac_dot_original_current = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
-    jacobianDotOriginal_Port.setDataSample(jac_dot_original_current);
+    jacDot_task = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
+    jacDot_Port.setDataSample(jacDot_task);
+    jac_full = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
+    jac_full_Port.setDataSample(jac_full);
+    jacDot_full = Eigen::MatrixXf(TaskSpaceDimension,DOFsize);
+    jacDot_full_Port.setDataSample(jacDot_full);
 
     jac_.resize(DOFsize);
-    jac_dot_.resize(DOFsize);
+    jacDot_.resize(DOFsize);
 
     position_Port.setDataSample(cartPosFloat);
     velocity_Port.setDataSample(cartVelFloat);
@@ -208,9 +208,10 @@ bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
 
 		RTT::log(RTT::Info) << "URDF path: " << _urdf_path << RTT::endlog();
 		RTT::log(RTT::Info) << "SRDF path: " << _srdf_path << RTT::endlog();
+        assert(exists_test(_urdf_path) == true);
+        assert(exists_test(_srdf_path) == true);
 
 		_models_loaded = _xbotcore_model.init(_urdf_path, _srdf_path);
-
 		for (unsigned int i = 0; i < _xbotcore_model.get_chain_names().size();
 				++i) {
 //			RTT::log(RTT::Info) << "here: chain #" << i << " "
@@ -223,7 +224,6 @@ bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
 				RTT::log(RTT::Info) << "  " << enabled_joints_in_chain_i[j]
 						<< RTT::endlog();
 		}
-
 		xml_string = "";
 		std::fstream xml_file(URDF_path.c_str(), std::fstream::in);
 		if (xml_file.is_open()) {
@@ -234,7 +234,6 @@ bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
 			}
 			xml_file.close();
 		}
-
 //		log(Warning) << xml_string << endlog();
 //		kdl_parser::treeFromUrdfModel(*(_xbotcore_model.get_urdf_model()), robot_tree);
 
@@ -244,7 +243,6 @@ bool ForwardKinematics::loadURDFAndSRDF(const std::string &URDF_path,
 
 		// setup kdl stuff
 //		robot_tree = _xbotcore_model.get_robot_tree();
-
 		selectKinematicChain(activeKinematicChain);
 	} else
 		RTT::log(RTT::Info) << "URDF and SRDF have been already loaded!"
@@ -265,9 +263,9 @@ void ForwardKinematics::calculateKinematics(
 	jnt_to_jac_solver->JntToJac(jntPosConfigPlusJntVelConfig_q.q, jac_,
 			activeKDLChain.getNrOfSegments());
 
-    RTT::log(RTT::Warning) << "Jac: " << jac_.data << RTT::endlog();
+//    RTT::log(RTT::Warning) << "Jac: " << jac_.data << RTT::endlog();
 
-	jnt_to_jac_dot_solver->JntToJacDot(jntPosConfigPlusJntVelConfig_q, jac_dot_,
+	jnt_to_jacDot_solver->JntToJacDot(jntPosConfigPlusJntVelConfig_q, jacDot_,
 			activeKDLChain.getNrOfSegments());
 
 	// jnt to cart pos
@@ -277,52 +275,52 @@ void ForwardKinematics::calculateKinematics(
 			activeKDLChain.getNrOfSegments());
 
 
-    this->castEigenMatrixDtoF(jac_.data, jacFloat_);
+    this->castEigenMatrixDtoF(jac_.data, jacFloat);
 
-    this->castEigenMatrixDtoF(jac_dot_.data, jacFloat_dot_);
+    this->castEigenMatrixDtoF(jacDot_.data, jacDotFloat);
 
-    RTT::log(RTT::Warning) << "jacFloat_: " << jacFloat_ << RTT::endlog();
+//    RTT::log(RTT::Warning) << "jacFloat: " << jacFloat << RTT::endlog();
 
 
-    //convert jacobian to eigen and add constraint
+    //convert jac to eigen and add constraint
     if(receiveTranslationOnly){
-        jac_current = jacFloat_.topRows<3>();
-        jac_original_current = jacFloat_.topRows<3>();
-        jac_dot_current = jacFloat_dot_.topRows<3>();
-        jac_dot_original_current = jacFloat_dot_.topRows<3>();
+        jac_task = jacFloat.topRows<3>();
+        jac_full = jacFloat.topRows<3>();
+        jacDot_task = jacDotFloat.topRows<3>();
+        jacDot_full = jacDotFloat.topRows<3>();
 
-    //    jac_current.row(0).setZero();
-    //    jac_current.row(1).setZero();
-        jac_current.row(2).setZero();
+    //    jac_task.row(0).setZero();
+    //    jac_task.row(1).setZero();
+        jac_task.row(2).setZero();
 
-    //    jac_dot_current.row(0).setZero();
-    //    jac_dot_current.row(1).setZero();
-        jac_dot_current.row(2).setZero();
+    //    jacDot_task.row(0).setZero();
+    //    jacDot_task.row(1).setZero();
+        jacDot_task.row(2).setZero();
 
     }
     else{
-        jac_current = jacFloat_;
-        jac_dot_current = jacFloat_dot_;
-        jac_original_current = jacFloat_;
-        jac_dot_original_current = jacFloat_dot_;
+        jac_task = jacFloat;
+        jacDot_task = jacDotFloat;
+        jac_full = jacFloat;
+        jacDot_full = jacDotFloat;
 
-    //    jac_current.row(0).setZero();
-    //    jac_current.row(1).setZero();
-        jac_current.row(2).setZero();
-    //    jac_current.row(3).setZero();
-    //    jac_current.row(4).setZero();
-        jac_current.row(5).setZero();
+    //    jac_task.row(0).setZero();
+    //    jac_task.row(1).setZero();
+        jac_task.row(2).setZero();
+    //    jac_task.row(3).setZero();
+    //    jac_task.row(4).setZero();
+        jac_task.row(5).setZero();
 
-    //    jac_dot_current.row(0).setZero();
-    //    jac_dot_current.row(1).setZero();
-        jac_dot_current.row(2).setZero();
-    //    jac_dot_current.row(3).setZero();
-    //    jac_dot_current.row(4).setZero();
-        jac_dot_current.row(5).setZero();
+    //    jacDot_task.row(0).setZero();
+    //    jacDot_task.row(1).setZero();
+        jacDot_task.row(2).setZero();
+    //    jacDot_task.row(3).setZero();
+    //    jacDot_task.row(4).setZero();
+        jacDot_task.row(5).setZero();
     }
 
 
-    RTT::log(RTT::Warning) << "jac_current: " << jac_current << RTT::endlog();
+//    RTT::log(RTT::Warning) << "jac_task: " << jac_task << RTT::endlog();
 
 }
 
@@ -340,6 +338,15 @@ void ForwardKinematics::castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::Ma
 
 void ForwardKinematics::castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d) {
     d = f.cast <double> ();
+}
+
+bool ForwardKinematics::exists_test(const std::string& name) {
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 ORO_CREATE_COMPONENT_LIBRARY()

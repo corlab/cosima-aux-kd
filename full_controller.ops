@@ -26,22 +26,25 @@ gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
 
 coman_gazebo.getModel("kuka")
 
-coman_gazebo.loadURDFAndSRDF("/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+var string path_world = "/home/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+var string path_model_urdf = "/home/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf"
+var string path_model_srdf = "/home/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf"
+coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 
-gazebo.world_path = "/homes/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+gazebo.world_path = path_world
 
 coman_gazebo.configure()
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
 fkin.setDOFsize(7);
-fkin.loadURDFAndSRDF("/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
 idyn.setDOFsize(7);
-idyn.loadURDFAndSRDF("/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf", "/homes/ndehio/git-repos/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf")
+idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
@@ -106,10 +109,10 @@ var ConnPolicy cp_aux;
 connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
 connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
 
-connect("fkin.jacobian", "caux.jacobian", cp_aux)
-connect("fkin.jacobianOriginal", "caux.jacobianOriginal", cp_aux)
-connect("fkin.jacobianDot", "caux.jacobianDot", cp_aux)
-connect("fkin.jacobianDotOriginal", "caux.jacobianDotOriginal", cp_aux)
+connect("fkin.jac", "caux.jac", cp_aux)
+connect("fkin.jac_full", "caux.jac_full", cp_aux)
+connect("fkin.jacDot", "caux.jacDot", cp_aux)
+connect("fkin.jacDot_full", "caux.jacDot_full", cp_aux)
 connect("idyn.inertia", "caux.inertia", cp_aux)
 
 ###
@@ -117,8 +120,8 @@ connect("idyn.inertia", "caux.inertia", cp_aux)
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("fkin.jacobian", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("fkin.jacobianDot", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("fkin.jac", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.jacDot", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
 connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
 connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
@@ -140,7 +143,7 @@ connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_po
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("fkin.jacobian", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("fkin.jac", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
 connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
@@ -169,5 +172,11 @@ caux.start()
 trajectorygenerator.start()
 positioncontroller.start()
 nullspacecontroller.start()
-#torquesuperimposer.start()
+torquesuperimposer.start()
+
+#generate graph file
+import("rtt_dot_service")           
+loadService("this", "dot")
+dot.generate 
+
 

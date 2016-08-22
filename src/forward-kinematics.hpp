@@ -69,10 +69,10 @@ protected:
 	/**
 	 * OutputPorts publish data.
 	 */
-    RTT::OutputPort<Eigen::MatrixXf> jacobian_Port;
-    RTT::OutputPort<Eigen::MatrixXf> jacobianOriginal_Port;
-    RTT::OutputPort<Eigen::MatrixXf> jacobianDot_Port;
-    RTT::OutputPort<Eigen::MatrixXf> jacobianDotOriginal_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jac_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jac_full_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacDot_Port;
+    RTT::OutputPort<Eigen::MatrixXf> jacDot_full_Port;
 
     RTT::OutputPort<Eigen::VectorXf> position_Port;
     RTT::OutputPort<Eigen::VectorXf> velocity_Port;
@@ -101,6 +101,7 @@ protected:
     void castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d);
     void castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f);
     void castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d);
+    bool exists_test(const std::string& name);
 
 	XBot::XBotCoreModel _xbotcore_model;
 
@@ -112,20 +113,20 @@ protected:
 	KDL::JntArrayVel jntPosConfigPlusJntVelConfig_q;
 
 	boost::shared_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver;
-	boost::shared_ptr<KDL::ChainJntToJacDotSolver> jnt_to_jac_dot_solver;
+	boost::shared_ptr<KDL::ChainJntToJacDotSolver> jnt_to_jacDot_solver;
 	boost::shared_ptr<KDL::ChainFkSolverPos_recursive> jnt_to_cart_pos_solver;
 	boost::shared_ptr<KDL::ChainFkSolverVel_recursive> jnt_to_cart_vel_solver;
 
 	KDL::Chain activeKDLChain;
 
 	KDL::Jacobian jac_;
-	KDL::Jacobian jac_dot_;
-    Eigen::MatrixXf jacFloat_;
-    Eigen::MatrixXf jacFloat_dot_;
-    Eigen::MatrixXf jac_current;
-    Eigen::MatrixXf jac_dot_current;
-    Eigen::MatrixXf jac_original_current;
-    Eigen::MatrixXf jac_dot_original_current;
+	KDL::Jacobian jacDot_;
+    Eigen::MatrixXf jacFloat;
+    Eigen::MatrixXf jacDotFloat;
+    Eigen::MatrixXf jac_task;
+    Eigen::MatrixXf jacDot_task;
+    Eigen::MatrixXf jac_full;
+    Eigen::MatrixXf jacDot_full;
 
 	KDL::Frame cartFrame;
 	KDL::FrameVel velFrame;
