@@ -73,7 +73,7 @@ Frame KDLParser::toKdl(urdf::Pose p) {
 }
 
 // construct joint
-Joint KDLParser::toKdl(std::shared_ptr<urdf::Joint> jnt) {
+Joint KDLParser::toKdl(boost::shared_ptr<urdf::Joint> jnt) {
 	Frame F_parent_jnt = toKdl(jnt->parent_to_joint_origin_transform);
 
 	switch (jnt->type) {
@@ -105,7 +105,7 @@ Joint KDLParser::toKdl(std::shared_ptr<urdf::Joint> jnt) {
 }
 
 // construct inertia
-RigidBodyInertia KDLParser::toKdl(std::shared_ptr<urdf::Inertial> i) {
+RigidBodyInertia KDLParser::toKdl(boost::shared_ptr<urdf::Inertial> i) {
 	Frame origin = toKdl(i->origin);
 
 	// the mass is frame indipendent
@@ -134,9 +134,9 @@ RigidBodyInertia KDLParser::toKdl(std::shared_ptr<urdf::Inertial> i) {
 }
 
 // recursive function to walk through tree
-bool KDLParser::addChildrenToTree(std::shared_ptr<const urdf::Link> root,
+bool KDLParser::addChildrenToTree(boost::shared_ptr<const urdf::Link> root,
 		Tree& tree) {
-	std::vector<std::shared_ptr<urdf::Link> > children = root->child_links;
+	std::vector<boost::shared_ptr<urdf::Link> > children = root->child_links;
 	log(Debug) << "[KDLParser] Link " << root->name.c_str() << " had "
 			<< (int) children.size() << " children" << endlog();
 
@@ -193,7 +193,7 @@ bool KDLParser::treeFromFile(const string& file, Tree& tree) {
 //	TiXmlDocument urdf_xml;
 //	urdf_xml.LoadFile(file);
 //	return treeFromXml(&urdf_xml, tree);
-//	std::shared_ptr<urdf::ModelInterface> modelPtr = urdf::parseURDFFile(file);
+//	boost::shared_ptr<urdf::ModelInterface> modelPtr = urdf::parseURDFFile(file);
 //	return treeFromUrdfModel(*(modelPtr.get()), tree);
 	return true;
 }
@@ -216,7 +216,7 @@ bool KDLParser::treeFromXml(TiXmlDocument *xml_doc, Tree& tree) {
 }
 
 bool KDLParser::treeFromUrdfModel(
-		std::shared_ptr<urdf::ModelInterface> robot_model, Tree& tree) {
+		boost::shared_ptr<urdf::ModelInterface> robot_model, Tree& tree) {
 	tree = Tree(robot_model->getRoot()->name);
 
 	// warn if root link has inertia. KDL does not support this
@@ -364,9 +364,9 @@ bool KDLParser::parseLink(urdf::Link &link, TiXmlElement* config) {
 	return true;
 }
 
-std::shared_ptr<urdf::ModelInterface> KDLParser::parseURDF(
+boost::shared_ptr<urdf::ModelInterface> KDLParser::parseURDF(
 		const std::string &xml_string) {
-	std::shared_ptr<urdf::ModelInterface> model(new urdf::ModelInterface);
+	boost::shared_ptr<urdf::ModelInterface> model(new urdf::ModelInterface);
 	model->clear();
 
 	TiXmlDocument xml_doc;
@@ -397,7 +397,7 @@ std::shared_ptr<urdf::ModelInterface> KDLParser::parseURDF(
 	// Get all Link elements
 	for (TiXmlElement* link_xml = robot_xml->FirstChildElement("link");
 			link_xml; link_xml = link_xml->NextSiblingElement("link")) {
-		std::shared_ptr<urdf::Link> link;
+		boost::shared_ptr<urdf::Link> link;
 		link.reset(new urdf::Link);
 
 		try {
@@ -448,7 +448,7 @@ std::shared_ptr<urdf::ModelInterface> KDLParser::parseURDF(
 	// Get all Joint elements
 	for (TiXmlElement* joint_xml = robot_xml->FirstChildElement("joint");
 			joint_xml; joint_xml = joint_xml->NextSiblingElement("joint")) {
-		std::shared_ptr<urdf::Joint> joint;
+		boost::shared_ptr<urdf::Joint> joint;
 		joint.reset(new urdf::Joint);
 
 		if (parseJoint(*joint, joint_xml)) {
@@ -493,12 +493,12 @@ std::shared_ptr<urdf::ModelInterface> KDLParser::parseURDF(
 	return model;
 }
 
-std::shared_ptr<urdf::ModelInterface> KDLParser::parseURDFFile(
+boost::shared_ptr<urdf::ModelInterface> KDLParser::parseURDFFile(
 		const std::string &path) {
 	std::ifstream stream(path.c_str());
 	if (!stream) {
 		log(Info) << "[KDLParser] File " << path << " does not exist" << endlog();
-		return std::shared_ptr<urdf::ModelInterface>();
+		return boost::shared_ptr<urdf::ModelInterface>();
 	}
 
 	std::string xml_str((std::istreambuf_iterator<char>(stream)),
@@ -932,7 +932,7 @@ bool KDLParser::parseJoint(urdf::Joint &joint, TiXmlElement* config) {
 bool KDLParser::initTreeAndChainFromURDFString(const std::string& urdfString,
 		const std::string& root_link, const std::string& tip_link,
 		KDL::Tree& kdl_tree, KDL::Chain& kdl_chain) {
-	std::shared_ptr<urdf::ModelInterface> urdf_modelPtr = parseURDF(
+	boost::shared_ptr<urdf::ModelInterface> urdf_modelPtr = parseURDF(
 			urdfString);
 
 	if (!urdf_modelPtr) {
@@ -940,7 +940,7 @@ bool KDLParser::initTreeAndChainFromURDFString(const std::string& urdfString,
 		return false;
 	}
 
-	for (std::map<std::string, std::shared_ptr<urdf::Joint> >::iterator joint =
+	for (std::map<std::string, boost::shared_ptr<urdf::Joint> >::iterator joint =
 			urdf_modelPtr->joints_.begin();
 			joint != urdf_modelPtr->joints_.end(); ++joint) {
 		if (joint->second->limits) {
