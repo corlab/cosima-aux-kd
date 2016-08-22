@@ -55,6 +55,8 @@ jacDot_full_Port("jacDot_full"){
         TaskSpaceDimension = 6;
     }
 
+DOFsize = 7;
+
     cartPosFloat = Eigen::VectorXf(TaskSpaceDimension);
     cartVelFloat = Eigen::VectorXf(TaskSpaceDimension);
     jacFloat= Eigen::MatrixXf(6,DOFsize); //allways 6 rows
