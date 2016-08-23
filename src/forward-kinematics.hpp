@@ -95,7 +95,11 @@ protected:
 
 	void calculateKinematics(const rstrt::robot::JointState& jointState);
 
+	// needs to be executed as very first operation
     void setDOFsize(unsigned int DOFsize);
+
+    // needs to be executed as second operation
+    void setTranslationOnly(const bool translationOnly);
 
     void castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f);
     void castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d);

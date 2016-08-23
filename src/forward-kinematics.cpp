@@ -15,7 +15,9 @@ ForwardKinematics::ForwardKinematics(const std::string &name) :
 				"position"), velocity_Port("velocity"), jointFB_Port("jointFB"),
                                                     out_jointFB_Port("out_jointFB"),
 jac_full_Port("jac_full"),
-jacDot_full_Port("jacDot_full"){
+jacDot_full_Port("jacDot_full"),
+DOFsize(7),
+receiveTranslationOnly(true) {
 
     this->addOperation("loadURDFAndSRDF", &ForwardKinematics::loadURDFAndSRDF,
             this, RTT::ClientThread);
@@ -25,6 +27,7 @@ jacDot_full_Port("jacDot_full"){
             RTT::ClientThread);
 
     this->addOperation("setDOFsize", &ForwardKinematics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
+    this->addOperation("setTranslationOnly", &ForwardKinematics::setTranslationOnly, this, RTT::ClientThread).doc("set translation only, or use also orientation");
 
     this->ports()->addPort(jac_task_Port).doc("Sending calculated jac.");
 
@@ -47,15 +50,17 @@ jacDot_full_Port("jacDot_full"){
 
     this->ports()->addPort(out_jointFB_Port).doc("Forward robot joint feedback.");
 
-    receiveTranslationOnly = true;
-    if(receiveTranslationOnly){
+    setTranslationOnly(true);
+}
+
+void ForwardKinematics::setTranslationOnly(const bool translationOnly) {
+    receiveTranslationOnly = translationOnly;
+    if(receiveTranslationOnly) {
         TaskSpaceDimension = 3;
     }
     else{
         TaskSpaceDimension = 6;
     }
-
-DOFsize = 7;
 
     cartPosFloat = Eigen::VectorXf(TaskSpaceDimension);
     cartVelFloat = Eigen::VectorXf(TaskSpaceDimension);

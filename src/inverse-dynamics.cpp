@@ -13,7 +13,7 @@ InverseDynamics::InverseDynamics(const std::string &name) :
 		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), inertia_Port(
 				"inertia"), h_Port("hVector"), jointFB_Port("jointFB"), gravity_vector(
 				0., 0., -9.81), robotInertia_Port("robotInertia"), robotInertia_Flow(
-				RTT::NoData), useRobotInertia(false) {
+				RTT::NoData), useRobotInertia(false), receiveTranslationOnly(true) {
 
 	this->addOperation("loadURDFAndSRDF", &InverseDynamics::loadURDFAndSRDF,
 			this, RTT::ClientThread);
@@ -22,6 +22,7 @@ InverseDynamics::InverseDynamics(const std::string &name) :
 			&InverseDynamics::getKinematicChainNames, this, RTT::ClientThread);
 
     this->addOperation("setDOFsize", &InverseDynamics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
+    this->addOperation("setTranslationOnly", &InverseDynamics::setTranslationOnly, this, RTT::ClientThread).doc("set translation only, or use also orientation");
 
 	this->ports()->addPort(inertia_Port).doc("Sending inertia.");
 
@@ -34,8 +35,12 @@ InverseDynamics::InverseDynamics(const std::string &name) :
 			this, RTT::OwnThread).doc("Use the inerati provided by the robot.").arg(
 			"useRobotInertia", "use the inertia from the robot or not.");
 
-    receiveTranslationOnly = true;
-    if(receiveTranslationOnly){
+	setTranslationOnly(true);
+}
+
+void InverseDynamics::setTranslationOnly(const bool translationOnly) {
+    receiveTranslationOnly = translationOnly;
+    if(receiveTranslationOnly) {
         TaskSpaceDimension = 3;
     }
     else{

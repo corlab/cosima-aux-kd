@@ -112,8 +112,12 @@ protected:
     Eigen::MatrixXf M;
 
     void calculateAuxiliaries(const Eigen::MatrixXf& jac_task, const Eigen::MatrixXf& jac_Dot_task, const Eigen::MatrixXf& M_, const Eigen::MatrixXf& jac_full_, const Eigen::MatrixXf& jacDot_full_);
-    void setDOFsize(unsigned int DOFsize);
 
+    // needs to be executed as very first operation
+	void setDOFsize(unsigned int DOFsize);
+
+	// needs to be executed as second operation
+	void setTranslationOnly(const bool translationOnly);
 
 private:
     unsigned int DOFsize;
