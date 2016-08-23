@@ -42,18 +42,21 @@ coman_gazebo.configure()
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
 fkin.setDOFsize(DOFsize);
+fkin.setTranslationOnly(true);
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
 idyn.setDOFsize(DOFsize);
+idyn.setTranslationOnly(true);
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
+caux.setTranslationOnly(true);
 caux.configure()
 
 
