@@ -65,6 +65,7 @@ caux.configure()
 # load TrajectoryGenerator
 loadComponent("trajectorygenerator", "TrajectoryGenerator")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
+trajectorygenerator.setTranslationOnly(true);
 trajectorygenerator.preparePorts()
 trajectorygenerator.configure()
 
@@ -72,7 +73,9 @@ trajectorygenerator.configure()
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
+positioncontroller.setTranslationOnly(true);
 positioncontroller.setGains(200,10);
+positioncontroller.preparePorts();
 positioncontroller.configure();
 
 # connect TrajectoryGenerator to PositionController
