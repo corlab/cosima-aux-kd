@@ -90,6 +90,7 @@ loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
 nullspacecontroller.setTranslationOnly(true);
+nullspacecontroller.preparePorts();
 nullspacecontroller.setGains(10,0.3);
 var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
 desJointAngles.angles[0] = 0.0410
@@ -106,6 +107,8 @@ nullspacecontroller.configure()
 loadComponent("forcecontroller", "ConstrainedForceController")
 setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
 forcecontroller.setDOFsize(DOFsize);
+forcecontroller.setTranslationOnly(true);
+forcecontroller.preparePorts();
 var eigen_vector lambda = eigen_vector(3);
 lambda[0] = 0
 lambda[1] = 0
