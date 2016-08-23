@@ -218,7 +218,10 @@ loadService("filereporter", "marshalling")
 connectPeers("filereporter","fkin")
 connectPeers("filereporter","trajectorygenerator")
 filereporter.reportPort("fkin", "position")
+filereporter.reportPort("fkin", "velocity")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")
 filereporter.configure
 filereporter.start
 
