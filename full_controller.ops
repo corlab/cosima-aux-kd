@@ -18,7 +18,7 @@ gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 loadComponent("coman_gazebo","cogimon::robotSim")
 setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
 
-var string path_world=os.getenv("prefix")+"cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
 #var string path_world = "/home/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
 #var string path_world = "/home/ndehio/wbmc/orocos-stuff/scenarios/IITworkshopExperiment2.world"
 gazebo.world_path = path_world
