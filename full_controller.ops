@@ -72,7 +72,7 @@ trajectorygenerator.configure()
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
-positioncontroller.setGains(20,0.8);
+positioncontroller.setGains(200,10);
 positioncontroller.configure();
 
 # connect TrajectoryGenerator to PositionController
@@ -86,7 +86,7 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
-nullspacecontroller.setGains(10,0);
+nullspacecontroller.setGains(10,0.3);
 var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
 desJointAngles.angles[0] = 0.0410
 desJointAngles.angles[1] = 0.0606 
