@@ -23,6 +23,7 @@ InverseDynamics::InverseDynamics(const std::string &name) :
 
     this->addOperation("setDOFsize", &InverseDynamics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
     this->addOperation("setTranslationOnly", &InverseDynamics::setTranslationOnly, this, RTT::ClientThread).doc("set translation only, or use also orientation");
+    this->addOperation("computeGravity", &InverseDynamics::computeGravity, this, RTT::ClientThread).doc("compute gravity compensating torques");
 
 	this->ports()->addPort(inertia_Port).doc("Sending inertia.");
 
@@ -229,6 +230,15 @@ void InverseDynamics::calculateDynamics(
     this->castEigenVectorDtoF(C_.data, coriolis);
 
     h = coriolis + gravity;
+}
+
+void InverseDynamics::computeGravity(rstrt::robot::JointState const & jointState, Eigen::VectorXf & gravity) {
+    this->castEigenVectorFtoD(jointState.angles, jntPosConfigPlusJntVelConfig_q.q.data);
+    this->castEigenVectorFtoD(jointState.velocities, jntPosConfigPlusJntVelConfig_q.qdot.data);
+
+    id_dyn_solver->JntToGravity(jntPosConfigPlusJntVelConfig_q.q, G_);
+
+    this->castEigenVectorDtoF(G_.data, gravity);
 }
 
 void InverseDynamics::castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f) {

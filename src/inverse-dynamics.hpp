@@ -94,6 +94,7 @@ protected:
     bool selectKinematicChain(const std::string& chainName);
 
     void calculateDynamics(const rstrt::robot::JointState& jointState);
+    void computeGravity(rstrt::robot::JointState const & jointState, Eigen::VectorXf & gravity);
 
     // needs to be executed as very first operation
 	void setDOFsize(unsigned int DOFsize);
