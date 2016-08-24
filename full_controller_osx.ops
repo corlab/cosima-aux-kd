@@ -13,12 +13,12 @@ require("os")
 loadComponent("gazebo","RTTGazeboEmbedded")
 setActivity("gazebo",0,10,ORO_SCHED_OTHER)
 gazebo.argv = strings("--verbose")
-gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+#gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 
 loadComponent("coman_gazebo","cogimon::robotSim")
 setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
 
-var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+var string path_world="/Users/dwigand/code/cogimon/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
 gazebo.world_path = path_world
 
 gazebo.configure()
@@ -48,6 +48,7 @@ initJointAngles.angles[4] = -0.0548
 initJointAngles.angles[5] = 1.1377
 initJointAngles.angles[6] = 0.0
 gazebo.setInitialConfigurationForModel("kuka", initJointAngles);
+
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
