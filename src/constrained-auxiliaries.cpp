@@ -186,7 +186,7 @@ void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_tas
 
     //Eq. under Eq. 10
     jac_cstr_MPI = (jac_cstr_.transpose() * jac_cstr_ + tmpeyeDOFsizeDOFsize).inverse() * jac_cstr_.transpose();
-
+//    std::cout<<jac_cstr_MPI<<"\n--------\n";
     //Eq. under Eq. 10
     P = identityDOFsizeDOFsize - (jac_cstr_MPI * jac_cstr_);
 

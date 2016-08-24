@@ -103,13 +103,17 @@ void ForwardKinematics::updateHook() {
             cartPosFloat(3) = cartFrame.M.GetRot().x();
             cartPosFloat(4) = cartFrame.M.GetRot().y();
             cartPosFloat(5) = cartFrame.M.GetRot().z();
-            cartVelFloat(0) = velFrame.p.v.x();
-            cartVelFloat(1) = velFrame.p.v.y();
-            cartVelFloat(2) = velFrame.p.v.z();
-            cartVelFloat(3) = velFrame.GetFrame().M.GetRot().x();
-            cartVelFloat(4) = velFrame.GetFrame().M.GetRot().y();
-            cartVelFloat(5) = velFrame.GetFrame().M.GetRot().z();
+            cartVelFloat(0) = velFrame.GetTwist().vel.x();
+            cartVelFloat(1) = velFrame.GetTwist().vel.y();
+            cartVelFloat(2) = velFrame.GetTwist().vel.z();
+            cartVelFloat(3) = velFrame.GetTwist().rot.x();
+            cartVelFloat(4) = velFrame.GetTwist().rot.y();
+            cartVelFloat(5) = velFrame.GetTwist().rot.z();
         }
+//        //std::cout<<jac_full*jointFB.velocities<<"\n -----------------------------------------------\n";
+//        if(((jac_full*jointFB.velocities)-cartVelFloat).norm()>0.1){
+//        	std::cout<<((jac_full*jointFB.velocities)-cartVelFloat).norm()<<" WRONG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n";
+//        }
 
         position_Port.write(cartPosFloat);
 //		RTT::log(RTT::Error) << "Cart. Pos: " << cartFrame << RTT::endlog();
