@@ -61,6 +61,8 @@ public:
 	bool startHook();
 	void WorldUpdateBegin();
 	void WorldUpdateEnd();
+	void setBaseAndTip(std::string base, std::string tip);
+	void setGravityVector(KDL::Vector gravity);
 	virtual ~InverseDynamics() {
 	}
 
@@ -138,7 +140,7 @@ protected:
 
 private:
 	bool _models_loaded;
-	std::string xml_string;
+	std::string xml_string,base_string,tip_string;
     unsigned int DOFsize;
     bool receiveTranslationOnly;
     unsigned int TaskSpaceDimension;

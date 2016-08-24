@@ -29,6 +29,8 @@ receiveTranslationOnly(true) {
     this->addOperation("setDOFsize", &ForwardKinematics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
     this->addOperation("setTranslationOnly", &ForwardKinematics::setTranslationOnly, this, RTT::ClientThread).doc("set translation only, or use also orientation");
 
+    this->addOperation("setBaseAndTip", &ForwardKinematics::setBaseAndTip,this,RTT::ClientThread).doc("Set base and tip of the kinematic chain");
+
     this->ports()->addPort(jac_task_Port).doc("Sending calculated jac.");
 
     this->ports()->addPort(jacDot_task_Port).doc(
@@ -146,9 +148,9 @@ bool ForwardKinematics::selectKinematicChain(const std::string& chainName) {
 	RTT::log(RTT::Warning) << "Size of enabled joints: "
 			<< enabled_joints_in_chain.size() << RTT::endlog();
 
-	// TODO do not hardcode this!
-	if (!p.initTreeAndChainFromURDFString(xml_string, "lwr_arm_base_link",
-			"lwr_arm_7_link", robot_tree, activeKDLChain)) {
+	// TODO do not hardcode this! "lwr_arm_7_link","left_lwr_arm_base_link"
+	if (!p.initTreeAndChainFromURDFString(xml_string, base_string,
+			tip_string, robot_tree, activeKDLChain)) {
 		log(Error) << "[ DLW " << this->getName()
 				<< "] URDF could not be parsed !" << endlog();
 
@@ -270,7 +272,7 @@ void ForwardKinematics::calculateKinematics(
 	jnt_to_jac_solver->JntToJac(jntPosConfigPlusJntVelConfig_q.q, jac_,
 			activeKDLChain.getNrOfSegments());
 
-//    RTT::log(RTT::Warning) << "Jac: " << jac_.data << RTT::endlog();
+//RTT::log(RTT::Warning) << "Jac: " << jac_.data << RTT::endlog();
 
 	jnt_to_jacDot_solver->JntToJacDot(jntPosConfigPlusJntVelConfig_q, jacDot_,
 			activeKDLChain.getNrOfSegments());
@@ -354,6 +356,11 @@ bool ForwardKinematics::exists_test(const std::string& name) {
     } else {
         return false;
     }
+}
+
+void ForwardKinematics::setBaseAndTip(std::string base,std::string tip){
+	this->base_string = base;
+	this->tip_string = tip;
 }
 
 ORO_CREATE_COMPONENT_LIBRARY()

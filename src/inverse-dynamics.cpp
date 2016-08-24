@@ -12,7 +12,7 @@ using namespace Eigen;
 InverseDynamics::InverseDynamics(const std::string &name) :
 		TaskContext(name), _models_loaded(false), jointFB_Flow(RTT::NoData), inertia_Port(
 				"inertia"), h_Port("hVector"), jointFB_Port("jointFB"), gravity_vector(
-				0., 0., -9.81), robotInertia_Port("robotInertia"), robotInertia_Flow(
+						0,0,-9.81), robotInertia_Port("robotInertia"), robotInertia_Flow(
 				RTT::NoData), useRobotInertia(false), receiveTranslationOnly(true) {
 
 	this->addOperation("loadURDFAndSRDF", &InverseDynamics::loadURDFAndSRDF,
@@ -24,8 +24,9 @@ InverseDynamics::InverseDynamics(const std::string &name) :
     this->addOperation("setDOFsize", &InverseDynamics::setDOFsize, this, RTT::ClientThread).doc("set DOF size");
     this->addOperation("setTranslationOnly", &InverseDynamics::setTranslationOnly, this, RTT::ClientThread).doc("set translation only, or use also orientation");
     this->addOperation("computeGravity", &InverseDynamics::computeGravity, this, RTT::ClientThread).doc("compute gravity compensating torques");
-
-	this->ports()->addPort(inertia_Port).doc("Sending inertia.");
+    this->addOperation("setBaseAndTip", &InverseDynamics::setBaseAndTip,this,RTT::ClientThread).doc("Set base and tip of the kinematic chain");
+	this->addOperation("setGravityVector", &InverseDynamics::setGravityVector,this,RTT::ClientThread).doc("Set gravity vector direction and magnitude");
+    this->ports()->addPort(inertia_Port).doc("Sending inertia.");
 
 	this->ports()->addPort(h_Port).doc(
 			"Sending calculated h vector containing Coriolis plus Gravity.");
@@ -108,8 +109,8 @@ bool InverseDynamics::selectKinematicChain(const std::string& chainName) {
 			<< enabled_joints_in_chain.size() << RTT::endlog();
 
 // TODO do not hardcode this!
-	if (!p.initTreeAndChainFromURDFString(xml_string, "lwr_arm_base_link",
-			"lwr_arm_7_link", robot_tree, activeKDLChain)) {
+	if (!p.initTreeAndChainFromURDFString(xml_string,  base_string,
+			tip_string, robot_tree, activeKDLChain)) {
 		log(Error) << "[ DLW " << this->getName()
 				<< "] URDF could not be parsed !" << endlog();
 
@@ -264,6 +265,14 @@ bool InverseDynamics::exists_test(const std::string& name) {
     } else {
         return false;
     }
+}
+
+void InverseDynamics::setBaseAndTip(std::string base,std::string tip){
+	this->base_string = base;
+	this->tip_string = tip;
+}
+void InverseDynamics::setGravityVector(KDL::Vector gravity){
+	gravity_vector = gravity;
 }
 
 ORO_LIST_COMPONENT_TYPE(cosima::InverseDynamics)
