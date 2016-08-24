@@ -46,6 +46,7 @@ coman_gazebo.configure()
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.setBaseAndTip("left_lwr_arm_base_link","left_lwr_tool")
 fkin.setDOFsize(DOFsize);
 fkin.setTranslationOnly(true);
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
@@ -53,6 +54,8 @@ fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
+idyn.setBaseAndTip("left_lwr_arm_base_link","left_lwr_tool")
+idyn.setGravityVector(-9.4757328,  0., -2.53901505)
 idyn.setDOFsize(DOFsize);
 idyn.setTranslationOnly(true);
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)

@@ -62,7 +62,7 @@ public:
 	void WorldUpdateBegin();
 	void WorldUpdateEnd();
 	void setBaseAndTip(std::string base, std::string tip);
-	void setGravityVector(KDL::Vector gravity);
+	void setGravityVector(double x, double y, double z);
 	virtual ~InverseDynamics() {
 	}
 

@@ -271,8 +271,8 @@ void InverseDynamics::setBaseAndTip(std::string base,std::string tip){
 	this->base_string = base;
 	this->tip_string = tip;
 }
-void InverseDynamics::setGravityVector(KDL::Vector gravity){
-	gravity_vector = gravity;
+void InverseDynamics::setGravityVector(double x, double y, double z){
+	gravity_vector = KDL::Vector(x,y,z);
 }
 
 ORO_LIST_COMPONENT_TYPE(cosima::InverseDynamics)
