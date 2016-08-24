@@ -1,0 +1,301 @@
+import("eigen_typekit")
+import("kdl_typekit")
+import("rst-rt_typekit")
+
+import("rtt_gazebo_embedded")
+import("rtt-gazebo-robot-sim")
+
+import("cosima-aux-kd")
+
+import("LWRController")
+require("os")
+
+loadComponent("gazebo","RTTGazeboEmbedded")
+setActivity("gazebo",0,10,ORO_SCHED_OTHER)
+gazebo.argv = strings("--verbose")
+gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+
+loadComponent("coman_gazebo","cogimon::robotSim")
+setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
+
+var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical-boris-base.world"
+#var string path_world = "/home/ndehio/git-repos/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+#var string path_world = "/home/ndehio/wbmc/orocos-stuff/scenarios/IITworkshopExperiment2.world"
+gazebo.world_path = path_world
+
+gazebo.configure()
+gazebo.start()
+gazebo.toggleDynamicsSimulation(false)
+
+gazebo.spawn_model_at_pos("boris-ft", "model://boris-ft", 0,0,0)
+
+
+coman_gazebo.getModel("boris-ft")
+var int DOFsize = 7;
+
+#var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.urdf"
+#var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.srdf"
+#coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+
+var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.urdf"
+var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.srdf"
+coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+
+
+
+coman_gazebo.configure()
+
+loadComponent("fkin", "cosima::ForwardKinematics")
+setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.setBaseAndTip("krc_base","left_lwr_tool")
+fkin.setDOFsize(DOFsize);
+fkin.setTranslationOnly(true);
+fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+fkin.configure()
+
+loadComponent("idyn", "cosima::InverseDynamics")
+setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
+#left_lwr_arm_base_link
+idyn.setBaseAndTip("krc_base","left_lwr_tool")
+#idyn.setGravityVector(-9.4757328,  0., -2.53901505)
+idyn.setDOFsize(DOFsize);
+idyn.setTranslationOnly(true);
+idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+idyn.configure()
+
+loadComponent("caux", "cosima::ConstrainedAuxiliaries")
+setActivity("caux",0.01,10,ORO_SCHED_OTHER)
+caux.setDOFsize(DOFsize);
+caux.setTranslationOnly(true);
+caux.configure()
+
+
+#load joint position controller
+loadComponent("jointposcontroller","JointPositionCtrl")
+setActivity("jointposcontroller",0.01,30,ORO_SCHED_OTHER)
+jointposcontroller.setDOFsizeAndGains(7,150,5)
+jointposcontroller.configure()
+var rstrt.kinematics.JointAngles desJointAngles_start = rstrt.kinematics.JointAngles(DOFsize)
+desJointAngles_start.angles[0] = 2.5
+desJointAngles_start.angles[1] =1.54 
+desJointAngles_start.angles[2] = -1
+desJointAngles_start.angles[3] = -1.3954
+desJointAngles_start.angles[4] = -0.0548
+desJointAngles_start.angles[5] = 1.1377
+desJointAngles_start.angles[6] = 0.0 
+gazebo.setInitialConfigurationForModel("boris-ft", desJointAngles_start);
+jointposcontroller.setDesiredJointAngles(desJointAngles_start)
+
+
+# load controller related stuff
+# load TrajectoryGenerator
+loadComponent("trajectorygenerator", "TrajectoryGenerator")
+setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
+trajectorygenerator.setTranslationOnly(true);
+trajectorygenerator.setCenter(-0.55,0.3,0.5)
+trajectorygenerator.preparePorts()
+trajectorygenerator.configure()
+
+# load PositionController
+loadComponent("positioncontroller", "PositionController")
+setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
+positioncontroller.setDOFsize(DOFsize);
+positioncontroller.setTranslationOnly(true);
+positioncontroller.setGains(50,10);
+#positioncontroller.setGainsOrientation(20,0.01);
+positioncontroller.setGainsOrientation(0,0);
+positioncontroller.preparePorts();
+positioncontroller.configure();
+
+# connect TrajectoryGenerator to PositionController
+var ConnPolicy cp_traj_posCtrl;
+connect("trajectorygenerator.out_desiredTaskSpacePosition_port", "positioncontroller.in_desiredTaskSpacePosition_port", cp_traj_posCtrl)
+connect("trajectorygenerator.out_desiredTaskSpaceVelocity_port", "positioncontroller.in_desiredTaskSpaceVelocity_port", cp_traj_posCtrl)
+connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positioncontroller.in_desiredTaskSpaceAcceleration_port", cp_traj_posCtrl)
+
+
+# load NullspaceController
+loadComponent("nullspacecontroller", "NullspaceController")
+setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
+nullspacecontroller.setDOFsize(DOFsize);
+nullspacecontroller.setTranslationOnly(true);
+nullspacecontroller.preparePorts();
+nullspacecontroller.setGains(20,0.5);
+var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
+desJointAngles.angles[0] = 2.5
+desJointAngles.angles[1] = 1.54 
+desJointAngles.angles[2] = -0.0154
+desJointAngles.angles[3] = -1.3954
+desJointAngles.angles[4] = -0.0548
+desJointAngles.angles[5] = 1.1377
+desJointAngles.angles[6] = 0.0 
+#desJointAngles.angles[0] = 0
+#desJointAngles.angles[1] = 0 
+#desJointAngles.angles[2] = 0
+#desJointAngles.angles[3] = 0
+#desJointAngles.angles[4] = 0
+#desJointAngles.angles[5] = 0
+#desJointAngles.angles[6] = 0.0 
+nullspacecontroller.setDesiredAngles(desJointAngles_start)
+nullspacecontroller.configure()
+
+# load Constrained ForceController
+loadComponent("forcecontroller", "ConstrainedForceController")
+setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
+forcecontroller.setDOFsize(DOFsize);
+forcecontroller.setTranslationOnly(true);
+forcecontroller.preparePorts();
+var eigen_vector lambda = eigen_vector(3);
+lambda[0] = 0
+lambda[1] = 0
+lambda[2] = -2
+#lambda[3] = 0
+#lambda[4] = 0
+#lambda[5] = 0
+forcecontroller.setLambda(lambda);
+forcecontroller.configure()
+
+
+# load TorqueSuperimposer
+loadComponent("torquesuperimposer", "TorqueSuperimposer")
+setActivity("torquesuperimposer",0.01,29,ORO_SCHED_OTHER)
+torquesuperimposer.setDOFsize(DOFsize);
+torquesuperimposer.configure()
+
+#load torqueTransition
+loadComponent("torqueTransition", "TorqueTransition")
+setActivity("torqueTransition",0.01,30,ORO_SCHED_OTHER)
+torqueTransition.setDOFsizeAndTransitionTime(7,4)
+torqueTransition.configure()
+
+# connect PositionController to TorqueSuperimposer
+var ConnPolicy cp_pos_sum;
+connect("positioncontroller.out_torques_port", "torquesuperimposer.in_torquesA_port", cp_pos_sum)
+
+# connect NullspaceController to TorqueSuperimposer
+var ConnPolicy cp_null_sum;
+connect("nullspacecontroller.out_torques_port", "torquesuperimposer.in_torquesB_port", cp_null_sum)
+
+# connect ForceController to TorqueSuperimposer
+var ConnPolicy cp_force_sum;
+connect("forcecontroller.out_torques_port", "torquesuperimposer.in_torquesC_port", cp_force_sum)
+
+
+# connect all auxiliaries
+var ConnPolicy cp_aux;
+connect("coman_gazebo.left_full_arm_JointFeedback", "fkin.jointFB", cp_aux)
+connect("coman_gazebo.left_full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+
+
+connect("fkin.jac_task", "caux.jac", cp_aux)
+connect("fkin.jac_full", "caux.jac_full", cp_aux)
+connect("fkin.jacDot_task", "caux.jacDot", cp_aux)
+connect("fkin.jacDot_full", "caux.jacDot_full", cp_aux)
+connect("idyn.inertia", "caux.inertia", cp_aux)
+connect("idyn.inertia", "forcecontroller.in_inertia_port", cp_aux)
+connect("idyn.hVector", "forcecontroller.in_h_port", cp_aux)
+
+###
+# connect AUX to PositionController
+###
+var ConnPolicy cp_aux_positioncontroller;
+# kinematics part
+connect("fkin.jac_task", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.jacDot_task", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+
+#connect("fkin.jac_full", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+#connect("fkin.jacDot_full", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+
+connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+
+connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
+connect("fkin.out_jointFB", "forcecontroller.in_robotstatus_port", cp_aux_positioncontroller)
+
+# dynamics part
+connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+
+# constrained part
+connect("caux.lambdaConstrained", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("caux.inertiaConstrained", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+#connect("idyn.inertia", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.pMatrix", "positioncontroller.in_P_port", cp_aux_positioncontroller)
+connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+
+
+
+connect("caux.jac_cstr", "forcecontroller.in_jacobian_c_port", cp_aux_positioncontroller)
+connect("caux.cConstrained", "forcecontroller.in_Cc_port", cp_aux_positioncontroller)
+connect("caux.inertiaConstrained", "forcecontroller.in_inertia_c_port", cp_aux_positioncontroller)
+connect("caux.pMatrix", "forcecontroller.in_p_port", cp_aux_positioncontroller)
+
+###
+# connect AUX to NullspaceController
+###
+var ConnPolicy cp_aux_nullspacecontroller;
+# kinematics part
+connect("fkin.jac_task", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+
+connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
+
+# constrained part
+connect("caux.jacMPI", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
+
+###
+# connect AUX to TorqueSuperImposer
+###
+var ConnPolicy cp_proj_torquesuperimposer;
+connect("caux.pMatrix", "torquesuperimposer.in_projection_port", cp_aux_nullspacecontroller)
+
+###
+# connect TorqueSuperImposer to ROBOT
+###
+var ConnPolicy cp_torquesuperimposer_robot;
+#connect("torquesuperimposer.out_torques_port", "coman_gazebo.left_full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
+
+### connections jointposcontroller
+var ConnPolicy cp_jointposcontroller;
+connect("jointposcontroller.out_torques_port","torqueTransition.in_torquesA_port",cp_jointposcontroller)
+connect("fkin.out_jointFB","jointposcontroller.in_robotstatus_port",cp_jointposcontroller)
+
+#torquetransition
+var ConnPolicy cp_torqueTransition;
+connect("torquesuperimposer.out_torques_port","torqueTransition.in_torquesB_port",cp_torqueTransition)
+connect("torqueTransition.out_torques_port", "coman_gazebo.left_full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
+#connect("positioncontroller.out_torques_port", "coman_gazebo.left_full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
+
+
+coman_gazebo.setControlMode("left_full_arm", "JointTorqueCtrl")
+gazebo.toggleDynamicsSimulation(true)
+fkin.start()
+idyn.start()
+caux.start()
+# start controller related components
+trajectorygenerator.start()
+positioncontroller.start()
+nullspacecontroller.start()
+forcecontroller.start()
+torquesuperimposer.start()
+jointposcontroller.start()
+torqueTransition.start()
+gazebo.stop()
+#generate graph file
+import("rtt_dot_service")           
+loadService("this", "dot")
+dot.generate 
+
+
+#filelogger
+loadComponent("filereporter", "OCL::FileReporting")
+loadService("filereporter", "marshalling")
+connectPeers("filereporter","fkin")
+connectPeers("filereporter","trajectorygenerator")
+filereporter.reportPort("fkin", "position")
+filereporter.reportPort("fkin", "velocity")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")
+filereporter.configure
+filereporter.start
+
+
