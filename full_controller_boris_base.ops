@@ -49,7 +49,7 @@ loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
 fkin.setBaseAndTip("krc_base","left_lwr_tool")
 fkin.setDOFsize(DOFsize);
-fkin.setTranslationOnly(true);
+fkin.setTranslationOnly(false);
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
@@ -59,28 +59,28 @@ setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
 idyn.setBaseAndTip("krc_base","left_lwr_tool")
 #idyn.setGravityVector(-9.4757328,  0., -2.53901505)
 idyn.setDOFsize(DOFsize);
-idyn.setTranslationOnly(true);
+idyn.setTranslationOnly(false);
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
-caux.setTranslationOnly(true);
+caux.setTranslationOnly(false);
 caux.configure()
 
 
 #load joint position controller
 loadComponent("jointposcontroller","JointPositionCtrl")
 setActivity("jointposcontroller",0.01,30,ORO_SCHED_OTHER)
-jointposcontroller.setDOFsizeAndGains(7,150,5)
+jointposcontroller.setDOFsizeAndGains(7,100,3)
 jointposcontroller.configure()
 var rstrt.kinematics.JointAngles desJointAngles_start = rstrt.kinematics.JointAngles(DOFsize)
-desJointAngles_start.angles[0] = 2.5
-desJointAngles_start.angles[1] =1.54 
+desJointAngles_start.angles[0] = 2.2
+desJointAngles_start.angles[1] =1
 desJointAngles_start.angles[2] = -1
-desJointAngles_start.angles[3] = -1.3954
-desJointAngles_start.angles[4] = -0.0548
+desJointAngles_start.angles[3] = -1
+desJointAngles_start.angles[4] = -0.8
 desJointAngles_start.angles[5] = 1.1377
 desJointAngles_start.angles[6] = 0.0 
 gazebo.setInitialConfigurationForModel("boris-ft", desJointAngles_start);
@@ -91,8 +91,9 @@ jointposcontroller.setDesiredJointAngles(desJointAngles_start)
 # load TrajectoryGenerator
 loadComponent("trajectorygenerator", "TrajectoryGenerator")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
-trajectorygenerator.setTranslationOnly(true);
+trajectorygenerator.setTranslationOnly(false);
 trajectorygenerator.setCenter(-0.55,0.3,0.5)
+trajectorygenerator.radius = 0.1
 trajectorygenerator.preparePorts()
 trajectorygenerator.configure()
 
@@ -100,10 +101,10 @@ trajectorygenerator.configure()
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
-positioncontroller.setTranslationOnly(true);
-positioncontroller.setGains(50,10);
+positioncontroller.setTranslationOnly(false);
+positioncontroller.setGains(200,10);
 #positioncontroller.setGainsOrientation(20,0.01);
-positioncontroller.setGainsOrientation(0,0);
+positioncontroller.setGainsOrientation(10,0.1);
 positioncontroller.preparePorts();
 positioncontroller.configure();
 
@@ -118,15 +119,15 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
-nullspacecontroller.setTranslationOnly(true);
+nullspacecontroller.setTranslationOnly(false);
 nullspacecontroller.preparePorts();
-nullspacecontroller.setGains(20,0.5);
-var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
-desJointAngles.angles[0] = 2.5
-desJointAngles.angles[1] = 1.54 
-desJointAngles.angles[2] = -0.0154
-desJointAngles.angles[3] = -1.3954
-desJointAngles.angles[4] = -0.0548
+nullspacecontroller.setGains(100,0.3);
+var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(7)
+desJointAngles.angles[0] = 3.5
+desJointAngles.angles[1] = 1
+desJointAngles.angles[2] = -1
+desJointAngles.angles[3] = -1
+desJointAngles.angles[4] = -0.8
 desJointAngles.angles[5] = 1.1377
 desJointAngles.angles[6] = 0.0 
 #desJointAngles.angles[0] = 0
@@ -136,22 +137,22 @@ desJointAngles.angles[6] = 0.0
 #desJointAngles.angles[4] = 0
 #desJointAngles.angles[5] = 0
 #desJointAngles.angles[6] = 0.0 
-nullspacecontroller.setDesiredAngles(desJointAngles_start)
+nullspacecontroller.setDesiredAngles(desJointAngles)
 nullspacecontroller.configure()
 
 # load Constrained ForceController
 loadComponent("forcecontroller", "ConstrainedForceController")
 setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
 forcecontroller.setDOFsize(DOFsize);
-forcecontroller.setTranslationOnly(true);
+forcecontroller.setTranslationOnly(false);
 forcecontroller.preparePorts();
-var eigen_vector lambda = eigen_vector(3);
+var eigen_vector lambda = eigen_vector(6);
 lambda[0] = 0
 lambda[1] = 0
-lambda[2] = -2
-#lambda[3] = 0
-#lambda[4] = 0
-#lambda[5] = 0
+lambda[2] = -5
+lambda[3] = 0
+lambda[4] = 0
+lambda[5] = 0
 forcecontroller.setLambda(lambda);
 forcecontroller.configure()
 
