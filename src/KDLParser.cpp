@@ -40,7 +40,7 @@
 #include <sstream>
 #include <urdf_model/joint.h>
 #include <boost/lexical_cast.hpp>
-#include <console_bridge/console.h>
+//#include <console_bridge/console.h>
 #include <tinyxml.h>
 #include <urdf_parser/urdf_parser.h>
 
