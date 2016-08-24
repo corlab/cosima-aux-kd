@@ -172,16 +172,16 @@ void ConstrainedAuxiliaries::calculateAuxiliaries(const Eigen::MatrixXf& jac_tas
         jac_cstr_.row(0).setZero();
         jac_cstr_.row(1).setZero();
     //	jac_cstr_.row(2).setZero();
-        jac_cstr_.row(3).setZero();
-        jac_cstr_.row(4).setZero();
-    //	jac_cstr_.row(5).setZero();
+        //jac_cstr_.row(3).setZero();
+        //jac_cstr_.row(4).setZero();
+    jac_cstr_.row(5).setZero();
 
         jac_Dot_cstr_.row(0).setZero();
         jac_Dot_cstr_.row(1).setZero();
     //	jac_Dot_cstr_.row(2).setZero();
-        jac_Dot_cstr_.row(3).setZero();
-        jac_Dot_cstr_.row(4).setZero();
-    //	jac_Dot_cstr_.row(5).setZero();
+        //jac_Dot_cstr_.row(3).setZero();
+        //jac_Dot_cstr_.row(4).setZero();
+     jac_Dot_cstr_.row(5).setZero();
     }
 
     //Eq. under Eq. 10

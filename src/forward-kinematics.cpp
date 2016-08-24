@@ -316,16 +316,16 @@ void ForwardKinematics::calculateKinematics(
     //    jac_task.row(0).setZero();
     //    jac_task.row(1).setZero();
         jac_task.row(2).setZero();
-    //    jac_task.row(3).setZero();
-    //    jac_task.row(4).setZero();
-        jac_task.row(5).setZero();
+        jac_task.row(3).setZero();
+        jac_task.row(4).setZero();
+        //jac_task.row(5).setZero();
 
     //    jacDot_task.row(0).setZero();
     //    jacDot_task.row(1).setZero();
         jacDot_task.row(2).setZero();
-    //    jacDot_task.row(3).setZero();
-    //    jacDot_task.row(4).setZero();
-        jacDot_task.row(5).setZero();
+        jacDot_task.row(3).setZero();
+        jacDot_task.row(4).setZero();
+        //jacDot_task.row(5).setZero();
     }
 
 
