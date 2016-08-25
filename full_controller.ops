@@ -78,6 +78,7 @@ loadComponent("trajectorygenerator", "TrajectoryGenerator")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
 trajectorygenerator.setTranslationOnly(false);
 trajectorygenerator.preparePorts()
+trajectorygenerator.radius=0.1
 trajectorygenerator.configure()
 
 # load PositionController
@@ -86,7 +87,7 @@ setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
 positioncontroller.setTranslationOnly(false);
 positioncontroller.setGains(200,10);
-positioncontroller.setGainsOrientation(10,0.1);
+positioncontroller.setGainsOrientation(300,10);
 positioncontroller.preparePorts();
 positioncontroller.configure();
 
@@ -113,6 +114,7 @@ desJointAngles.angles[4] = -0.0548
 desJointAngles.angles[5] = 1.1377
 desJointAngles.angles[6] = 0.0
 nullspacecontroller.setDesiredAngles(desJointAngles)
+connectPeers("idyn","nullspacecontroller")
 nullspacecontroller.configure()
 
 # load Constrained ForceController

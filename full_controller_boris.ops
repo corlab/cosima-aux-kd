@@ -46,25 +46,25 @@ coman_gazebo.configure()
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
-fkin.setBaseAndTip("left_lwr_arm_base_link","left_lwr_tool")
+fkin.setBaseAndTip("left_lwr_arm_base_link","left_lwr_tool_link")
 fkin.setDOFsize(DOFsize);
-fkin.setTranslationOnly(true);
+fkin.setTranslationOnly(false);
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
-idyn.setBaseAndTip("left_lwr_arm_base_link","left_lwr_tool")
+idyn.setBaseAndTip("left_lwr_arm_base_link","left_lwr_tool_link")
 idyn.setGravityVector(-9.4757328,  0., -2.53901505)
 idyn.setDOFsize(DOFsize);
-idyn.setTranslationOnly(true);
+idyn.setTranslationOnly(false);
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
-caux.setTranslationOnly(true);
+caux.setTranslationOnly(false);
 caux.configure()
 
 
@@ -88,7 +88,7 @@ jointposcontroller.setDesiredJointAngles(desJointAngles_start)
 # load TrajectoryGenerator
 loadComponent("trajectorygenerator", "TrajectoryGenerator")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
-trajectorygenerator.setTranslationOnly(true);
+trajectorygenerator.setTranslationOnly(false);
 trajectorygenerator.preparePorts()
 trajectorygenerator.configure()
 
@@ -96,7 +96,7 @@ trajectorygenerator.configure()
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
-positioncontroller.setTranslationOnly(true);
+positioncontroller.setTranslationOnly(false);
 positioncontroller.setGains(50,10);
 #positioncontroller.setGainsOrientation(20,0.01);
 positioncontroller.setGainsOrientation(0,0);
@@ -114,7 +114,7 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
-nullspacecontroller.setTranslationOnly(true);
+nullspacecontroller.setTranslationOnly(false);
 nullspacecontroller.preparePorts();
 nullspacecontroller.setGains(20,0.5);
 var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
@@ -139,15 +139,15 @@ nullspacecontroller.configure()
 loadComponent("forcecontroller", "ConstrainedForceController")
 setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
 forcecontroller.setDOFsize(DOFsize);
-forcecontroller.setTranslationOnly(true);
+forcecontroller.setTranslationOnly(false);
 forcecontroller.preparePorts();
-var eigen_vector lambda = eigen_vector(3);
+var eigen_vector lambda = eigen_vector(6);
 lambda[0] = 0
 lambda[1] = 0
 lambda[2] = -2
-#lambda[3] = 0
-#lambda[4] = 0
-#lambda[5] = 0
+lambda[3] = 0
+lambda[4] = 0
+lambda[5] = 0
 forcecontroller.setLambda(lambda);
 forcecontroller.configure()
 
