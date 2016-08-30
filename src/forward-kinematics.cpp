@@ -93,9 +93,9 @@ void ForwardKinematics::updateHook() {
             cartPosFloat(0) = cartFrame.p.x();
             cartPosFloat(1) = cartFrame.p.y();
             cartPosFloat(2) = cartFrame.p.z();
-            cartVelFloat(0) = velFrame.p.v.x();
-            cartVelFloat(1) = velFrame.p.v.y();
-            cartVelFloat(2) = velFrame.p.v.z();
+            cartVelFloat(0) = velFrame.GetTwist().vel.x(); //similar to velFrame.p.v.x();
+            cartVelFloat(1) = velFrame.GetTwist().vel.y(); //similar to velFrame.p.v.y();
+            cartVelFloat(2) = velFrame.GetTwist().vel.z(); //similar to velFrame.p.v.z();
         }else{
             cartPosFloat(0) = cartFrame.p.x();
             cartPosFloat(1) = cartFrame.p.y();
@@ -103,9 +103,9 @@ void ForwardKinematics::updateHook() {
             cartPosFloat(3) = cartFrame.M.GetRot().x();
             cartPosFloat(4) = cartFrame.M.GetRot().y();
             cartPosFloat(5) = cartFrame.M.GetRot().z();
-            cartVelFloat(0) = velFrame.GetTwist().vel.x();
-            cartVelFloat(1) = velFrame.GetTwist().vel.y();
-            cartVelFloat(2) = velFrame.GetTwist().vel.z();
+            cartVelFloat(0) = velFrame.GetTwist().vel.x(); //similar to velFrame.p.v.x();
+            cartVelFloat(1) = velFrame.GetTwist().vel.y(); //similar to velFrame.p.v.y();
+            cartVelFloat(2) = velFrame.GetTwist().vel.z(); //similar to velFrame.p.v.z();
             cartVelFloat(3) = velFrame.GetTwist().rot.x();
             cartVelFloat(4) = velFrame.GetTwist().rot.y();
             cartVelFloat(5) = velFrame.GetTwist().rot.z();
