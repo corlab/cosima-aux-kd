@@ -13,12 +13,12 @@ require("os")
 loadComponent("gazebo","RTTGazeboEmbedded")
 setActivity("gazebo",0,10,ORO_SCHED_OTHER)
 gazebo.argv = strings("--verbose")
-#gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 
 loadComponent("coman_gazebo","cogimon::robotSim")
 setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
 
-var string path_world="/Users/dwigand/code/cogimon/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
+var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
 gazebo.world_path = path_world
 
 gazebo.configure()
@@ -30,32 +30,54 @@ gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
 coman_gazebo.getModel("kuka")
 var int DOFsize = 7;
 
-var string path_model_urdf = "/Users/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.urdf"
-var string path_model_srdf = "/Users/dwigand/code/cogimon/cogimon-gazebo-models/kuka-lwr-4plus/model.srdf"
+var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.urdf"
+var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.srdf"
 coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 
-
+#var bool translationOnly = true;
+#var eigen_vector lambda = eigen_vector(3);
+var bool translationOnly = false;
+var eigen_vector lambda = eigen_vector(6);
+lambda[0] = 0
+lambda[1] = 0
+lambda[2] = -5
+lambda[3] = 0
+lambda[4] = 0
+lambda[5] = 0
 
 coman_gazebo.configure()
+
+#set initial configuration
+var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(DOFsize)
+initJointAngles.angles[0] = 0.0410
+initJointAngles.angles[1] = 0.0606
+initJointAngles.angles[2] = -0.0154
+initJointAngles.angles[3] = -1.3954
+initJointAngles.angles[4] = -0.0548
+initJointAngles.angles[5] = 1.1377
+initJointAngles.angles[6] = 0.0
+gazebo.setInitialConfigurationForModel("kuka", initJointAngles);
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
 fkin.setDOFsize(DOFsize);
-fkin.setTranslationOnly(true);
+fkin.setTranslationOnly(translationOnly);
+fkin.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
 idyn.setDOFsize(DOFsize);
-idyn.setTranslationOnly(true);
+idyn.setTranslationOnly(translationOnly);
+idyn.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
 loadComponent("caux", "cosima::ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
-caux.setTranslationOnly(true);
+caux.setTranslationOnly(translationOnly);
 caux.configure()
 
 
@@ -63,16 +85,19 @@ caux.configure()
 # load TrajectoryGenerator
 loadComponent("trajectorygenerator", "TrajectoryGenerator")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
-trajectorygenerator.setTranslationOnly(true);
+trajectorygenerator.setTranslationOnly(translationOnly);
 trajectorygenerator.preparePorts()
+trajectorygenerator.radius=0.1
 trajectorygenerator.configure()
 
 # load PositionController
-loadComponent("positioncontroller", "PositionNormalController")
+loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setDOFsize(DOFsize);
-positioncontroller.setTranslationOnly(true);
-positioncontroller.setGains(10,0.1);
+positioncontroller.setConstrainedVersionMode(false);
+positioncontroller.setTranslationOnly(translationOnly);
+positioncontroller.setGains(200,10);
+positioncontroller.setGainsOrientation(300,10);
 positioncontroller.preparePorts();
 positioncontroller.configure();
 
@@ -87,9 +112,9 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
-nullspacecontroller.setTranslationOnly(true);
+nullspacecontroller.setTranslationOnly(translationOnly);
 nullspacecontroller.preparePorts();
-nullspacecontroller.setGains(0,0);
+nullspacecontroller.setGains(10,0.3);
 var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
 desJointAngles.angles[0] = 0.0410
 desJointAngles.angles[1] = 0.0606
@@ -99,18 +124,15 @@ desJointAngles.angles[4] = -0.0548
 desJointAngles.angles[5] = 1.1377
 desJointAngles.angles[6] = 0.0
 nullspacecontroller.setDesiredAngles(desJointAngles)
+connectPeers("idyn","nullspacecontroller")
 nullspacecontroller.configure()
 
 # load Constrained ForceController
 loadComponent("forcecontroller", "ConstrainedForceController")
 setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
 forcecontroller.setDOFsize(DOFsize);
-forcecontroller.setTranslationOnly(true);
+forcecontroller.setTranslationOnly(translationOnly);
 forcecontroller.preparePorts();
-var eigen_vector lambda = eigen_vector(3);
-lambda[0] = 0
-lambda[1] = 0
-lambda[2] = -5
 forcecontroller.setLambda(lambda);
 forcecontroller.configure()
 
@@ -119,6 +141,7 @@ forcecontroller.configure()
 loadComponent("torquesuperimposer", "TorqueSuperimposer")
 setActivity("torquesuperimposer",0.01,29,ORO_SCHED_OTHER)
 torquesuperimposer.setDOFsize(DOFsize);
+torquesuperimposer.setConstrainedVersionMode(false);
 torquesuperimposer.configure()
 
 # connect PositionController to TorqueSuperimposer
@@ -200,21 +223,23 @@ connect("caux.pMatrix", "torquesuperimposer.in_projection_port", cp_aux_nullspac
 # connect TorqueSuperImposer to ROBOT
 ###
 var ConnPolicy cp_torquesuperimposer_robot;
-#connect("torquesuperimposer.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
-connect("positioncontroller.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
+connect("torquesuperimposer.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
 
 
 coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
+
+gazebo.stop()
+
 fkin.start()
 idyn.start()
 caux.start()
 # start controller related components
 trajectorygenerator.start()
 positioncontroller.start()
-#nullspacecontroller.start()
-#forcecontroller.start()
-#torquesuperimposer.start()
+nullspacecontroller.start()
+forcecontroller.start()
+torquesuperimposer.start()
 
 #generate graph file
 #import("rtt_dot_service")

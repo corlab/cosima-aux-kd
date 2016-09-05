@@ -1,0 +1,167 @@
+import("eigen_typekit")
+import("kdl_typekit")
+import("rst-rt_typekit")
+
+import("rtt_gazebo_embedded")
+import("rtt-gazebo-robot-sim")
+
+import("cosima-aux-kd")
+
+import("LWRController")
+require("os")
+
+loadComponent("gazebo","RTTGazeboEmbedded")
+setActivity("gazebo",0,10,ORO_SCHED_OTHER)
+gazebo.argv = strings("--verbose")
+gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+
+loadComponent("coman_gazebo","cogimon::robotSim")
+setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
+
+gazebo.configure()
+gazebo.start()
+gazebo.toggleDynamicsSimulation(false)
+
+gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
+
+coman_gazebo.getModel("kuka")
+var int DOFsize = 7;
+
+var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.urdf"
+var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.srdf"
+coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+
+#var bool translationOnly = true;
+var bool translationOnly = false;
+
+
+coman_gazebo.configure()
+
+#set initial configuration
+var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(DOFsize)
+initJointAngles.angles[0] = 0.0410
+initJointAngles.angles[1] = 0.0606
+initJointAngles.angles[2] = -0.0154
+initJointAngles.angles[3] = -1.3954
+initJointAngles.angles[4] = -0.0548
+initJointAngles.angles[5] = 1.1377
+initJointAngles.angles[6] = 0.0
+gazebo.setInitialConfigurationForModel("kuka", initJointAngles);
+
+loadComponent("fkin", "cosima::ForwardKinematics")
+setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.setDOFsize(DOFsize);
+fkin.setTranslationOnly(translationOnly);
+fkin.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
+fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+fkin.configure()
+
+loadComponent("idyn", "cosima::InverseDynamics")
+setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
+idyn.setDOFsize(DOFsize);
+idyn.setTranslationOnly(translationOnly);
+idyn.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
+idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+idyn.configure()
+
+loadComponent("caux", "cosima::ConstrainedAuxiliaries")
+setActivity("caux",0.01,10,ORO_SCHED_OTHER)
+caux.setDOFsize(DOFsize);
+caux.setTranslationOnly(translationOnly);
+caux.configure()
+
+
+# load controller related stuff
+# load ReachingTask
+loadComponent("reachingtask", "ReachingTask")
+setActivity("reachingtask",0.01,30,ORO_SCHED_OTHER)
+reachingtask.setTranslationOnly(translationOnly);
+reachingtask.preparePorts();
+reachingtask.setReachingPosition(0.5, -0.5, 0.5);
+reachingtask.setReachingOrientationEulerZYXAngle(0.0, 0.0, 0.0);
+reachingtask.configure();
+
+# load PositionController
+loadComponent("positioncontroller", "PositionController")
+setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
+positioncontroller.setDOFsize(DOFsize);
+positioncontroller.setConstrainedVersionMode(false);
+positioncontroller.setTranslationOnly(translationOnly);
+positioncontroller.setGains(200,10);
+positioncontroller.setGainsOrientation(300,10);
+positioncontroller.preparePorts();
+positioncontroller.configure();
+
+# connect ReachingTask to PositionController
+var ConnPolicy cp_traj_posCtrl;
+connect("reachingtask.out_reachingposition_port", "positioncontroller.in_desiredTaskSpacePosition_port", cp_traj_posCtrl)
+connect("reachingtask.out_reachingvelocity_port", "positioncontroller.in_desiredTaskSpaceVelocity_port", cp_traj_posCtrl)
+connect("reachingtask.out_reachingacceleration_port", "positioncontroller.in_desiredTaskSpaceAcceleration_port", cp_traj_posCtrl)
+
+
+# connect all auxiliaries
+var ConnPolicy cp_aux;
+connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
+connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+
+
+connect("fkin.jac_task", "caux.jac", cp_aux)
+connect("fkin.jac_full", "caux.jac_full", cp_aux)
+connect("fkin.jacDot_task", "caux.jacDot", cp_aux)
+connect("fkin.jacDot_full", "caux.jacDot_full", cp_aux)
+connect("idyn.inertia", "caux.inertia", cp_aux)
+
+###
+# connect AUX to PositionController
+###
+var ConnPolicy cp_aux_positioncontroller;
+# kinematics part
+connect("fkin.jac_full", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.jacDot_full", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+
+connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+
+connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
+
+# dynamics part
+connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+
+# constrained part
+connect("caux.lambdaConstrained", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("idyn.inertia", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.pMatrix", "positioncontroller.in_P_port", cp_aux_positioncontroller)
+connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+
+
+
+###
+# connect PositionController to ROBOT
+###
+var ConnPolicy cp_robot;
+connect("positioncontroller.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_robot)
+
+coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
+gazebo.toggleDynamicsSimulation(true)
+
+gazebo.stop()
+
+fkin.start()
+idyn.start()
+caux.start()
+# start controller related components
+reachingtask.start()
+positioncontroller.start()
+
+#generate graph file
+#import("rtt_dot_service")
+#loadService("this", "dot")
+#dot.generate
+
+#for debugging
+reachingtask.setReachingPosition(-0.55, 0.0, 0.5);
+reachingtask.setReachingOrientationAxisAngle(0.0, -3.14, 0.0);
+reachingtask.setReachingOrientationEulerZYXAngle(0.0, -3.14, 0.0);
+
+positioncontroller.displayStatus()
+
