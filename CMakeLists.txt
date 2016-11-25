@@ -5,12 +5,12 @@ set(CMAKE_BUILD_TYPE Release)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-find_package(gazebo REQUIRED)
-if(GAZEBO_VERSION)
-  if(${GAZEBO_VERSION} GREATER 6)
-      add_definitions(-DGAZEBO_GREATER_6)
-  endif()
-endif()
+#find_package(gazebo REQUIRED)
+#if(GAZEBO_VERSION)
+#  if(${GAZEBO_VERSION} GREATER 6)
+#      add_definitions(-DGAZEBO_GREATER_6)
+#  endif()
+#endif()
 
 find_package(OROCOS-RTT REQUIRED COMPONENTS rtt-scripting rtt-typekit)
 if (NOT OROCOS-RTT_FOUND)
@@ -72,7 +72,7 @@ include_directories(
     ${orocos_kdl_INCLUDE_DIRS}
 )
 
-orocos_component(${PROJECT_NAME} src/forward-kinematics.cpp src/KDLParser.cpp src/inverse-dynamics.cpp src/constrained-auxiliaries.cpp)
+orocos_component(${PROJECT_NAME} src/forward-kinematics.cpp src/KDLParser.cpp src/inverse-dynamics.cpp src/inverse-dynamics-tmp.cpp src/constrained-auxiliaries.cpp)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS RTT_COMPONENT)
 
 target_link_libraries(${PROJECT_NAME}
@@ -87,4 +87,4 @@ target_link_libraries(${PROJECT_NAME}
    ${orocos_kdl_LIBRARIES}
 )
 
-orocos_generate_package(INCLUDE_DIRS include src/KDLParser.hpp src/inverse-dynamics.hpp src/forward-kinematics.hpp src/constrained-auxiliaries.hpp)
+orocos_generate_package(INCLUDE_DIRS include src/KDLParser.hpp src/inverse-dynamics.hpp src/forward-kinematics.hpp src/constrained-auxiliaries.hpp src/inverse-dynamics-tmp.hpp)
