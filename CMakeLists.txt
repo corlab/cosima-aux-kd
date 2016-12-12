@@ -72,8 +72,14 @@ include_directories(
     ${orocos_kdl_INCLUDE_DIRS}
 )
 
-orocos_component(${PROJECT_NAME} src/forward-kinematics.cpp src/KDLParser.cpp src/inverse-dynamics.cpp src/constrained-auxiliaries.cpp)
+orocos_component(${PROJECT_NAME} src/WrapperKDL.cpp src/WrapperKDLBoris.cpp src/FeedbackCombiner.cpp src/TorqueCommandSeperator.cpp src/Auxiliaries.cpp src/ConstrainedAuxiliaries.cpp src/TaskDescriberSingleArm.cpp src/TaskDescriberDoubleArm.cpp src/forward-kinematics src/KDLParser.cpp src/inverse-dynamics.cpp src/constrained-auxiliaries.cpp)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS RTT_COMPONENT)
+
+add_subdirectory(kdl_parser) # or however you call it
+#find_package(KDL_PARSER)
+message(STATUS "KDL_Parser_INCLUDE_DIRS: ${KDL_Parser_INCLUDE_DIRS}")
+include_directories(${KDL_Parser_INCLUDE_DIRS})
+target_link_libraries(${CMAKE_PROJECT_NAME} KDL_Parser)
 
 target_link_libraries(${PROJECT_NAME}
    ${USE_OROCOS_LIBRARIES}

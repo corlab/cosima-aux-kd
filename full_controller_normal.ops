@@ -33,19 +33,23 @@ var int DOFsize = 7;
 var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.urdf"
 var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.srdf"
 coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+coman_gazebo.configure()
 
-#var bool translationOnly = true;
-#var eigen_vector lambda = eigen_vector(3);
-var bool translationOnly = false;
-var eigen_vector lambda = eigen_vector(6);
+var bool translationOnly = true;
+var int TaskSpaceDimension = 3;
+var int CstrSpaceDimension = 3;
+var eigen_vector lambda = eigen_vector(3);
+#var bool translationOnly = false;
+#var int TaskSpaceDimension = 6;
+#var int CstrSpaceDimension = 6;
+#var eigen_vector lambda = eigen_vector(6);
 lambda[0] = 0
 lambda[1] = 0
-lambda[2] = -5
-lambda[3] = 0
-lambda[4] = 0
-lambda[5] = 0
+lambda[2] = 0
+#lambda[3] = 0
+#lambda[4] = 0
+#lambda[5] = 0
 
-coman_gazebo.configure()
 
 #set initial configuration
 var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(DOFsize)
@@ -57,6 +61,15 @@ initJointAngles.angles[4] = -0.0548
 initJointAngles.angles[5] = 1.1377
 initJointAngles.angles[6] = 0.0
 gazebo.setInitialConfigurationForModel("kuka", initJointAngles);
+
+var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
+desJointAngles.angles[0] = 0.0410
+desJointAngles.angles[1] = 0.0606
+desJointAngles.angles[2] = -0.0154
+desJointAngles.angles[3] = -1.3954
+desJointAngles.angles[4] = -0.0548
+desJointAngles.angles[5] = 1.1377
+desJointAngles.angles[6] = 0.0
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
@@ -93,9 +106,10 @@ trajectorygenerator.configure()
 # load PositionController
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
+positioncontroller.setTranslationOnly(translationOnly);
 positioncontroller.setDOFsize(DOFsize);
 positioncontroller.setConstrainedVersionMode(false);
-positioncontroller.setTranslationOnly(translationOnly);
+positioncontroller.setTaskSpaceDimension(TaskSpaceDimension);
 positioncontroller.setGains(200,10);
 positioncontroller.setGainsOrientation(300,10);
 positioncontroller.preparePorts();
@@ -112,26 +126,17 @@ connect("trajectorygenerator.out_desiredTaskSpaceAcceleration_port", "positionco
 loadComponent("nullspacecontroller", "NullspaceController")
 setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
-nullspacecontroller.setTranslationOnly(translationOnly);
+nullspacecontroller.setTaskSpaceDimension(TaskSpaceDimension);
 nullspacecontroller.preparePorts();
 nullspacecontroller.setGains(10,0.3);
-var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
-desJointAngles.angles[0] = 0.0410
-desJointAngles.angles[1] = 0.0606
-desJointAngles.angles[2] = -0.0154
-desJointAngles.angles[3] = -1.3954
-desJointAngles.angles[4] = -0.0548
-desJointAngles.angles[5] = 1.1377
-desJointAngles.angles[6] = 0.0
 nullspacecontroller.setDesiredAngles(desJointAngles)
-connectPeers("idyn","nullspacecontroller")
 nullspacecontroller.configure()
 
 # load Constrained ForceController
 loadComponent("forcecontroller", "ConstrainedForceController")
 setActivity("forcecontroller",0.01,31,ORO_SCHED_OTHER)
 forcecontroller.setDOFsize(DOFsize);
-forcecontroller.setTranslationOnly(translationOnly);
+forcecontroller.setCstrSpaceDimension(CstrSpaceDimension);
 forcecontroller.preparePorts();
 forcecontroller.setLambda(lambda);
 forcecontroller.configure()
@@ -206,7 +211,7 @@ connect("caux.pMatrix", "forcecontroller.in_p_port", cp_aux_positioncontroller)
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("fkin.jac_task", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("fkin.jac_full", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
 connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
@@ -229,7 +234,6 @@ connect("torquesuperimposer.out_torques_port", "coman_gazebo.full_arm_JointTorqu
 coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
 
-gazebo.stop()
 
 fkin.start()
 idyn.start()
@@ -248,16 +252,18 @@ torquesuperimposer.start()
 
 
 #filelogger
-#loadComponent("filereporter", "OCL::FileReporting")
-#loadService("filereporter", "marshalling")
-#connectPeers("filereporter","fkin")
-#connectPeers("filereporter","trajectorygenerator")
-#filereporter.reportPort("fkin", "position")
-#filereporter.reportPort("fkin", "velocity")
-#filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")
-#filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
-#filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")
-#filereporter.configure
-#filereporter.start
+loadComponent("filereporter", "OCL::FileReporting")
+loadService("filereporter", "marshalling")
+connectPeers("filereporter","fkin")
+connectPeers("filereporter","trajectorygenerator")
+connectPeers("filereporter","positioncontroller")
+filereporter.reportPort("fkin", "position")
+filereporter.reportPort("fkin", "velocity")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
+filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")
+filereporter.reportPort("positioncontroller", "out_force_port")
+filereporter.configure
+filereporter.start
 
 

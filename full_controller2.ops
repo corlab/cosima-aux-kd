@@ -70,26 +70,23 @@ desJointAngles.angles[4] = -0.0548
 desJointAngles.angles[5] = 1.1377
 desJointAngles.angles[6] = 0.0
 
-loadComponent("fkin", "cosima::ForwardKinematics")
+loadComponent("fkin", "WrapperKDL")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.loadModel(path_model_urdf, "lwr_arm_base_link", "lwr_arm_7_link");
 fkin.setDOFsize(DOFsize);
-fkin.setTranslationOnly(translationOnly);
-fkin.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
-fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
-loadComponent("idyn", "cosima::InverseDynamics")
-setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
-idyn.setDOFsize(DOFsize);
-idyn.setTranslationOnly(translationOnly);
-idyn.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
-idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
-idyn.configure()
+loadComponent("task", "TaskDescriberSingleArm")
+setActivity("task",0.01,10,ORO_SCHED_OTHER)
+task.setDOFsize(DOFsize);
+task.configure()
 
-loadComponent("caux", "cosima::ConstrainedAuxiliaries")
+loadComponent("caux", "ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
-caux.setTranslationOnly(translationOnly);
+caux.setTaskSpaceDimension(TaskSpaceDimension);
+caux.setCstrSpaceDimension(CstrSpaceDimension);
+caux.preparePorts();
 caux.configure()
 
 
@@ -163,65 +160,78 @@ connect("forcecontroller.out_torques_port", "torquesuperimposer.in_torquesC_port
 
 # connect all auxiliaries
 var ConnPolicy cp_aux;
-connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
-connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+connect("coman_gazebo.full_arm_JointFeedback", "fkin.in_robotstatus_port", cp_aux)
 
+connect("fkin.out_jacobian_port", "task.in_jacobian_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "task.in_jacobianDot_port", cp_aux)
 
-connect("fkin.jac_task", "caux.jac", cp_aux)
-connect("fkin.jac_full", "caux.jac_full", cp_aux)
-connect("fkin.jacDot_task", "caux.jacDot", cp_aux)
-connect("fkin.jacDot_full", "caux.jacDot_full", cp_aux)
-connect("idyn.inertia", "caux.inertia", cp_aux)
-connect("idyn.inertia", "forcecontroller.in_inertia_port", cp_aux)
-connect("idyn.hVector", "forcecontroller.in_h_port", cp_aux)
+#connect("task.out_jacobianTranslationTask_port", "caux.in_jacobianTask_port", cp_aux)
+#connect("task.out_jacobianDotTranslationTask_port", "caux.in_jacobianDotTask_port", cp_aux)
+#connect("task.out_jacobianTranslationCstr_port", "caux.in_jacobianCstr_port", cp_aux)
+#connect("task.out_jacobianDotTranslationCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
+connect("task.out_jacobianTask_port", "caux.in_jacobianTask_port", cp_aux)
+connect("task.out_jacobianDotTask_port", "caux.in_jacobianDotTask_port", cp_aux)
+connect("task.out_jacobianCstr_port", "caux.in_jacobianCstr_port", cp_aux)
+connect("task.out_jacobianDotCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
+
+connect("fkin.out_inertia_port", "caux.in_inertia_port", cp_aux)
+
+connect("fkin.out_inertia_port", "forcecontroller.in_inertia_port", cp_aux)
+connect("fkin.out_coriolisAndGravity_port", "forcecontroller.in_h_port", cp_aux)
 
 ###
 # connect AUX to PositionController
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("fkin.jac_task", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("fkin.jacDot_task", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+#connect("task.out_jacobianTranslationTask_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+#connect("task.out_jacobianDotTranslationTask_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("task.out_jacobianTask_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("task.out_jacobianDotTask_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
-connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
-connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+#connect("fkin.out_cartPosTranslation_port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+#connect("fkin.out_cartVelTranslation_port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+connect("fkin.out_cartPos_port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.out_cartVel_port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
 
-connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
-connect("fkin.out_jointFB", "forcecontroller.in_robotstatus_port", cp_aux_positioncontroller)
+connect("fkin.out_robotstatus_port", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
+connect("fkin.out_robotstatus_port", "forcecontroller.in_robotstatus_port", cp_aux_positioncontroller)
 
 # dynamics part
-connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+connect("fkin.out_coriolisAndGravity_port", "positioncontroller.in_h_port", cp_aux_positioncontroller)
 
 # constrained part
-connect("caux.lambdaConstrained", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
-connect("caux.inertiaConstrained", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
-connect("caux.pMatrix", "positioncontroller.in_P_port", cp_aux_positioncontroller)
-connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+connect("caux.out_lambdaCstr_port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("caux.out_MCstr_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.out_P_port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
+connect("caux.out_CCstr_port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
 
 
-connect("caux.jac_cstr", "forcecontroller.in_jacobian_c_port", cp_aux_positioncontroller)
-connect("caux.cConstrained", "forcecontroller.in_Cc_port", cp_aux_positioncontroller)
-connect("caux.inertiaConstrained", "forcecontroller.in_inertia_c_port", cp_aux_positioncontroller)
-connect("caux.pMatrix", "forcecontroller.in_p_port", cp_aux_positioncontroller)
+#connect("task.out_jacobianTranslationCstr_port", "forcecontroller.in_jacobian_c_port", cp_aux_positioncontroller)
+connect("task.out_jacobianCstr_port", "forcecontroller.in_jacobian_c_port", cp_aux_positioncontroller)
+connect("caux.out_CCstr_port", "forcecontroller.in_Cc_port", cp_aux_positioncontroller)
+connect("caux.out_MCstr_port", "forcecontroller.in_inertia_c_port", cp_aux_positioncontroller)
+connect("caux.out_P_port", "forcecontroller.in_p_port", cp_aux_positioncontroller)
 
 ###
 # connect AUX to NullspaceController
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("fkin.jac_task", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+#connect("task.out_jacobianTranslationTask_port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("task.out_jacobianTask_port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
-connect("fkin.out_jointFB", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
+connect("fkin.out_robotstatus_port", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
 # constrained part
-connect("caux.jacMPI", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
+connect("caux.out_jacobianMPI_port", "nullspacecontroller.in_jacobianInv_port", cp_aux_nullspacecontroller)
 
 ###
 # connect AUX to TorqueSuperImposer
 ###
 var ConnPolicy cp_proj_torquesuperimposer;
-connect("caux.pMatrix", "torquesuperimposer.in_projection_port", cp_aux_nullspacecontroller)
+connect("caux.out_P_port", "torquesuperimposer.in_projection_port", cp_aux_nullspacecontroller)
 
 ###
 # connect TorqueSuperImposer to ROBOT
@@ -234,8 +244,8 @@ coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
 
 
+task.start()
 fkin.start()
-idyn.start()
 caux.start()
 # start controller related components
 trajectorygenerator.start()
@@ -245,9 +255,9 @@ forcecontroller.start()
 torquesuperimposer.start()
 
 #generate graph file
-#import("rtt_dot_service")
-#loadService("this", "dot")
-#dot.generate
+import("rtt_dot_service")
+loadService("this", "dot")
+dot.generate
 
 
 #filelogger
@@ -256,8 +266,8 @@ loadService("filereporter", "marshalling")
 connectPeers("filereporter","fkin")
 connectPeers("filereporter","trajectorygenerator")
 connectPeers("filereporter","positioncontroller")
-filereporter.reportPort("fkin", "position")
-filereporter.reportPort("fkin", "velocity")
+filereporter.reportPort("fkin", "out_cartPos_port")
+filereporter.reportPort("fkin", "out_cartVel_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")

@@ -15,30 +15,32 @@ setActivity("gazebo",0,10,ORO_SCHED_OTHER)
 gazebo.argv = strings("--verbose")
 gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 
-loadComponent("coman_gazebo","cogimon::robotSim")
-setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
+loadComponent("robot_gazebo","cogimon::robotSim")
+setActivity("robot_gazebo",0,11,ORO_SCHED_OTHER)
+
 
 gazebo.configure()
 gazebo.start()
 gazebo.toggleDynamicsSimulation(false)
 
-gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
+gazebo.spawn_model_at_pos("myrobo", "model://boris-ft", 0,0,0)
 
-coman_gazebo.getModel("kuka")
+robot_gazebo.getModel("myrobo")
 var int DOFsize = 7;
 
-var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.urdf"
-var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.srdf"
-coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.urdf"
+var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.srdf"
+robot_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 
 #var bool translationOnly = true;
+#var int TaskSpaceDimension = 3;
 var bool translationOnly = false;
+var int TaskSpaceDimension = 6;
 
-
-coman_gazebo.configure()
+robot_gazebo.configure()
 
 #set initial configuration
-var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(DOFsize)
+var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(14)
 initJointAngles.angles[0] = 0.0410
 initJointAngles.angles[1] = 0.0606
 initJointAngles.angles[2] = -0.0154
@@ -46,21 +48,45 @@ initJointAngles.angles[3] = -1.3954
 initJointAngles.angles[4] = -0.0548
 initJointAngles.angles[5] = 1.1377
 initJointAngles.angles[6] = 0.0
-gazebo.setInitialConfigurationForModel("kuka", initJointAngles);
+
+initJointAngles.angles[0] = 1.8
+initJointAngles.angles[1] =1
+initJointAngles.angles[2] = -1
+initJointAngles.angles[3] = -1
+initJointAngles.angles[4] = -0.5
+initJointAngles.angles[5] = 0.7
+initJointAngles.angles[6] = 0.0 
+
+initJointAngles.angles[0] = 0.72
+initJointAngles.angles[1] = 1.12
+initJointAngles.angles[2] = 0.59
+initJointAngles.angles[3] =-1.31
+initJointAngles.angles[4] =-2.11
+initJointAngles.angles[5] = 1.32
+initJointAngles.angles[6] = 0.00 
+
+initJointAngles.angles[7] = 0.0 
+initJointAngles.angles[8] = 0.0 
+initJointAngles.angles[9] = 0.0 
+initJointAngles.angles[10] = 0.0 
+initJointAngles.angles[11] = 0.0 
+initJointAngles.angles[12] = 0.0 
+initJointAngles.angles[13] = 0.0 
+gazebo.setInitialConfigurationForModel("myrobo", initJointAngles);
 
 loadComponent("fkin", "cosima::ForwardKinematics")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.setBaseAndTip("krc_base","left_lwr_tool_link")
 fkin.setDOFsize(DOFsize);
 fkin.setTranslationOnly(translationOnly);
-fkin.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
 fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
 loadComponent("idyn", "cosima::InverseDynamics")
 setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
+idyn.setBaseAndTip("krc_base","left_lwr_tool_link")
 idyn.setDOFsize(DOFsize);
 idyn.setTranslationOnly(translationOnly);
-idyn.setBaseAndTip("lwr_arm_base_link", "lwr_arm_7_link");
 idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 idyn.configure()
 
@@ -78,17 +104,18 @@ setActivity("reachingtask",0.01,30,ORO_SCHED_OTHER)
 reachingtask.setTranslationOnly(translationOnly);
 reachingtask.preparePorts();
 reachingtask.setReachingPosition(0.5, -0.5, 0.5);
-reachingtask.setReachingOrientationEulerZYXAngle(0.0, 0.0, 0.0);
+#reachingtask.setReachingOrientationEulerZYXAngle(0.0, 0.0, 0.0);
 reachingtask.configure();
 
 # load PositionController
 loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
+positioncontroller.setTranslationOnly(translationOnly);
 positioncontroller.setDOFsize(DOFsize);
 positioncontroller.setConstrainedVersionMode(false);
-positioncontroller.setTranslationOnly(translationOnly);
+positioncontroller.setTaskSpaceDimension(TaskSpaceDimension);
 positioncontroller.setGains(200,10);
-positioncontroller.setGainsOrientation(300,10);
+positioncontroller.setGainsOrientation(150,10);
 positioncontroller.preparePorts();
 positioncontroller.configure();
 
@@ -101,8 +128,8 @@ connect("reachingtask.out_reachingacceleration_port", "positioncontroller.in_des
 
 # connect all auxiliaries
 var ConnPolicy cp_aux;
-connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
-connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+connect("robot_gazebo.left_full_arm_JointFeedback", "fkin.jointFB", cp_aux)
+connect("robot_gazebo.left_full_arm_JointFeedback", "idyn.jointFB", cp_aux)
 
 
 connect("fkin.jac_task", "caux.jac", cp_aux)
@@ -139,12 +166,11 @@ connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_po
 # connect PositionController to ROBOT
 ###
 var ConnPolicy cp_robot;
-connect("positioncontroller.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_robot)
+connect("positioncontroller.out_torques_port", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_robot)
 
-coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
+robot_gazebo.setControlMode("left_full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
 
-gazebo.stop()
 
 fkin.start()
 idyn.start()
@@ -159,8 +185,8 @@ positioncontroller.start()
 #dot.generate
 
 #for debugging
-reachingtask.setReachingPosition(-0.55, 0.0, 0.5);
-reachingtask.setReachingOrientationAxisAngle(0.0, -3.14, 0.0);
+reachingtask.setReachingPosition(-0.55, 0.3, 0.85);
+#reachingtask.setReachingOrientationAxisAngle(0.0, -3.14, 0.0);
 reachingtask.setReachingOrientationEulerZYXAngle(0.0, -3.14, 0.0);
 
 positioncontroller.displayStatus()
