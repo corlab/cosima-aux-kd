@@ -82,6 +82,9 @@ void TaskDescriberDoubleArm::updateHook() {
 
 
         // specify jacobian constrained
+//        out_jacobianCstr_var = in_jacobian_var;
+//        out_jacobianDotCstr_var = in_jacobianDot_var;
+
         jntPosConfigPlusJntVelConfig_q.q.data.setZero();
         jntPosConfigPlusJntVelConfig_q.qdot.data.setZero();
         this->castEigenVectorFtoD(in_robotstatus_var.angles, jntPosConfigPlusJntVelConfig_q.q.data);
@@ -112,60 +115,28 @@ void TaskDescriberDoubleArm::updateHook() {
         this->castEigenMatrixDtoF(jac_dot_.data, out_jacobianDotCstr_var);
 
 
-        // seperate in Translation and Orientation
-        out_jacobianTranslationFull_var = out_jacobianFull_var.topRows<6>();
-        out_jacobianDotTranslationFull_var = out_jacobianDotFull_var.topRows<6>();
-        out_jacobianOrientationFull_var = out_jacobianFull_var.bottomRows<6>();
-        out_jacobianDotOrientationFull_var = out_jacobianDotFull_var.bottomRows<6>();
-
-        out_jacobianTranslationTask_var = out_jacobianTask_var.topRows<6>();
-        out_jacobianDotTranslationTask_var = out_jacobianDotTask_var.topRows<6>();
-        out_jacobianOrientationTask_var = out_jacobianTask_var.bottomRows<6>();
-        out_jacobianDotOrientationTask_var = out_jacobianDotTask_var.bottomRows<6>();
-
-        out_jacobianTranslationCstr_var = out_jacobianCstr_var.topRows<3>();
-        out_jacobianDotTranslationCstr_var = out_jacobianDotCstr_var.topRows<3>();
-        out_jacobianOrientationCstr_var = out_jacobianCstr_var.bottomRows<3>();
-        out_jacobianDotOrientationCstr_var = out_jacobianDotCstr_var.bottomRows<3>();
-
     } else if ( (in_robotstatus_flow == RTT::NoData) || (in_jacobian_flow == RTT::NoData) || (in_jacobianDot_flow == RTT::NoData) ) {
+        out_jacobianFull_var.setZero();
+        out_jacobianDotFull_var.setZero();
+
         out_jacobianTask_var.setZero();
         out_jacobianDotTask_var.setZero();
-        out_jacobianTranslationTask_var.setZero();
-        out_jacobianDotTranslationTask_var.setZero();
-        out_jacobianOrientationTask_var.setZero();
-        out_jacobianDotOrientationTask_var.setZero();
 
         out_jacobianCstr_var.setZero();
         out_jacobianDotCstr_var.setZero();
-        out_jacobianTranslationCstr_var.setZero();
-        out_jacobianDotTranslationCstr_var.setZero();
-        out_jacobianOrientationCstr_var.setZero();
-        out_jacobianDotOrientationCstr_var.setZero();
+
     } else {
         // there should be something really wrong!
     }
 
     out_jacobianFull_port.write(out_jacobianFull_var);
     out_jacobianDotFull_port.write(out_jacobianDotFull_var);
-    out_jacobianTranslationFull_port.write(out_jacobianTranslationFull_var);
-    out_jacobianDotTranslationFull_port.write(out_jacobianDotTranslationFull_var);
-    out_jacobianOrientationFull_port.write(out_jacobianOrientationFull_var);
-    out_jacobianDotOrientationFull_port.write(out_jacobianDotOrientationFull_var);
 
     out_jacobianTask_port.write(out_jacobianTask_var);
     out_jacobianDotTask_port.write(out_jacobianDotTask_var);
-    out_jacobianTranslationTask_port.write(out_jacobianTranslationTask_var);
-    out_jacobianDotTranslationTask_port.write(out_jacobianDotTranslationTask_var);
-    out_jacobianOrientationTask_port.write(out_jacobianOrientationTask_var);
-    out_jacobianDotOrientationTask_port.write(out_jacobianDotOrientationTask_var);
 
     out_jacobianCstr_port.write(out_jacobianCstr_var);
     out_jacobianDotCstr_port.write(out_jacobianDotCstr_var);
-    out_jacobianTranslationCstr_port.write(out_jacobianTranslationCstr_var);
-    out_jacobianDotTranslationCstr_port.write(out_jacobianDotTranslationCstr_var);
-    out_jacobianOrientationCstr_port.write(out_jacobianOrientationCstr_var);
-    out_jacobianDotOrientationCstr_port.write(out_jacobianDotOrientationCstr_var);
 }
 
 void TaskDescriberDoubleArm::stopHook() {
@@ -228,24 +199,12 @@ void TaskDescriberDoubleArm::preparePorts(){
 
         ports()->removePort("out_jacobianFull_port");
         ports()->removePort("out_jacobianDotFull_port");
-        ports()->removePort("out_jacobianTranslationFull_port");
-        ports()->removePort("out_jacobianDotTranslationFull_port");
-        ports()->removePort("out_jacobianOrientationFull_port");
-        ports()->removePort("out_jacobianDotOrientationFull_port");
 
         ports()->removePort("out_jacobianTask_port");
         ports()->removePort("out_jacobianDotTask_port");
-        ports()->removePort("out_jacobianTranslationTask_port");
-        ports()->removePort("out_jacobianDotTranslationTask_port");
-        ports()->removePort("out_jacobianOrientationTask_port");
-        ports()->removePort("out_jacobianDotOrientationTask_port");
 
         ports()->removePort("out_jacobianCstr_port");
         ports()->removePort("out_jacobianDotCstr_port");
-        ports()->removePort("out_jacobianTranslationCstr_port");
-        ports()->removePort("out_jacobianDotTranslationCstr_port");
-        ports()->removePort("out_jacobianOrientationCstr_port");
-        ports()->removePort("out_jacobianDotOrientationCstr_port");
     }
 
     //prepare input
@@ -284,36 +243,6 @@ void TaskDescriberDoubleArm::preparePorts(){
     out_jacobianDotFull_port.setDataSample(out_jacobianDotFull_var);
     ports()->addPort(out_jacobianDotFull_port);
 
-    out_jacobianTranslationFull_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianTranslationFull_var.setZero();
-    out_jacobianTranslationFull_port.setName("out_jacobianTranslationFull_port");
-    out_jacobianTranslationFull_port.doc("Output port for jacobianTranslation matrix");
-    out_jacobianTranslationFull_port.setDataSample(out_jacobianTranslationFull_var);
-    ports()->addPort(out_jacobianTranslationFull_port);
-
-    out_jacobianDotTranslationFull_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianDotTranslationFull_var.setZero();
-    out_jacobianDotTranslationFull_port.setName("out_jacobianDotTranslationFull_port");
-    out_jacobianDotTranslationFull_port.doc("Output port for jacobianDotTranslation matrix");
-    out_jacobianDotTranslationFull_port.setDataSample(out_jacobianDotTranslationFull_var);
-    ports()->addPort(out_jacobianDotTranslationFull_port);
-
-    out_jacobianOrientationFull_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianOrientationFull_var.setZero();
-    out_jacobianOrientationFull_port.setName("out_jacobianOrientationFull_port");
-    out_jacobianOrientationFull_port.doc("Output port for jacobianOrientation matrix");
-    out_jacobianOrientationFull_port.setDataSample(out_jacobianOrientationFull_var);
-    ports()->addPort(out_jacobianOrientationFull_port);
-
-    out_jacobianDotOrientationFull_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianDotOrientationFull_var.setZero();
-    out_jacobianDotOrientationFull_port.setName("out_jacobianDotOrientationFull_port");
-    out_jacobianDotOrientationFull_port.doc("Output port for jacobianDotOrientation matrix");
-    out_jacobianDotOrientationFull_port.setDataSample(out_jacobianDotOrientationFull_var);
-    ports()->addPort(out_jacobianDotOrientationFull_port);
-
-    // ###
-
     out_jacobianTask_var = Eigen::MatrixXf(12,DOFsize);
     out_jacobianTask_var.setZero();
     out_jacobianTask_port.setName("out_jacobianTask_port");
@@ -328,36 +257,6 @@ void TaskDescriberDoubleArm::preparePorts(){
     out_jacobianDotTask_port.setDataSample(out_jacobianDotTask_var);
     ports()->addPort(out_jacobianDotTask_port);
 
-    out_jacobianTranslationTask_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianTranslationTask_var.setZero();
-    out_jacobianTranslationTask_port.setName("out_jacobianTranslationTask_port");
-    out_jacobianTranslationTask_port.doc("Output port for jacobianTranslation matrix");
-    out_jacobianTranslationTask_port.setDataSample(out_jacobianTranslationTask_var);
-    ports()->addPort(out_jacobianTranslationTask_port);
-
-    out_jacobianDotTranslationTask_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianDotTranslationTask_var.setZero();
-    out_jacobianDotTranslationTask_port.setName("out_jacobianDotTranslationTask_port");
-    out_jacobianDotTranslationTask_port.doc("Output port for jacobianDotTranslation matrix");
-    out_jacobianDotTranslationTask_port.setDataSample(out_jacobianDotTranslationTask_var);
-    ports()->addPort(out_jacobianDotTranslationTask_port);
-
-    out_jacobianOrientationTask_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianOrientationTask_var.setZero();
-    out_jacobianOrientationTask_port.setName("out_jacobianOrientationTask_port");
-    out_jacobianOrientationTask_port.doc("Output port for jacobianOrientation matrix");
-    out_jacobianOrientationTask_port.setDataSample(out_jacobianOrientationTask_var);
-    ports()->addPort(out_jacobianOrientationTask_port);
-
-    out_jacobianDotOrientationTask_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianDotOrientationTask_var.setZero();
-    out_jacobianDotOrientationTask_port.setName("out_jacobianDotOrientationTask_port");
-    out_jacobianDotOrientationTask_port.doc("Output port for jacobianDotOrientation matrix");
-    out_jacobianDotOrientationTask_port.setDataSample(out_jacobianDotOrientationTask_var);
-    ports()->addPort(out_jacobianDotOrientationTask_port);
-
-    //####
-
     out_jacobianCstr_var = Eigen::MatrixXf(6,DOFsize);
     out_jacobianCstr_var.setZero();
     out_jacobianCstr_port.setName("out_jacobianCstr_port");
@@ -371,34 +270,6 @@ void TaskDescriberDoubleArm::preparePorts(){
     out_jacobianDotCstr_port.doc("Output port for jacobianDot matrix");
     out_jacobianDotCstr_port.setDataSample(out_jacobianDotCstr_var);
     ports()->addPort(out_jacobianDotCstr_port);
-
-    out_jacobianTranslationCstr_var = Eigen::MatrixXf(3,DOFsize);
-    out_jacobianTranslationCstr_var.setZero();
-    out_jacobianTranslationCstr_port.setName("out_jacobianTranslationCstr_port");
-    out_jacobianTranslationCstr_port.doc("Output port for jacobianTranslation matrix");
-    out_jacobianTranslationCstr_port.setDataSample(out_jacobianTranslationCstr_var);
-    ports()->addPort(out_jacobianTranslationCstr_port);
-
-    out_jacobianDotTranslationCstr_var = Eigen::MatrixXf(3,DOFsize);
-    out_jacobianDotTranslationCstr_var.setZero();
-    out_jacobianDotTranslationCstr_port.setName("out_jacobianDotTranslationCstr_port");
-    out_jacobianDotTranslationCstr_port.doc("Output port for jacobianDotTranslation matrix");
-    out_jacobianDotTranslationCstr_port.setDataSample(out_jacobianDotTranslationCstr_var);
-    ports()->addPort(out_jacobianDotTranslationCstr_port);
-
-    out_jacobianOrientationCstr_var = Eigen::MatrixXf(3,DOFsize);
-    out_jacobianOrientationCstr_var.setZero();
-    out_jacobianOrientationCstr_port.setName("out_jacobianOrientationCstr_port");
-    out_jacobianOrientationCstr_port.doc("Output port for jacobianOrientation matrix");
-    out_jacobianOrientationCstr_port.setDataSample(out_jacobianOrientationCstr_var);
-    ports()->addPort(out_jacobianOrientationCstr_port);
-
-    out_jacobianDotOrientationCstr_var = Eigen::MatrixXf(3,DOFsize);
-    out_jacobianDotOrientationCstr_var.setZero();
-    out_jacobianDotOrientationCstr_port.setName("out_jacobianDotOrientationCstr_port");
-    out_jacobianDotOrientationCstr_port.doc("Output port for jacobianDotOrientation matrix");
-    out_jacobianDotOrientationCstr_port.setDataSample(out_jacobianDotOrientationCstr_var);
-    ports()->addPort(out_jacobianDotOrientationCstr_port);
 
     portsArePrepared = true;
 }

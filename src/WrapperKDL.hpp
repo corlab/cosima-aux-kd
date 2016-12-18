@@ -20,15 +20,15 @@
 #include "kdl_parser.hpp"
 #include "model.h"
 #include <kdl/tree.hpp>
-#include <kdl/chainidsolver_recursive_newton_euler.hpp>
+//#include <kdl/chainidsolver_recursive_newton_euler.hpp>
 #include <kdl/chaindynparam.hpp>
 #include <kdl/chainfksolvervel_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacdotsolver.hpp>
-#include <kdl/chainfksolver.hpp>
-#include <kdl/chainiksolvervel_pinv.hpp>
-#include <kdl/chainiksolverpos_nr.hpp>
+//#include <kdl/chainfksolver.hpp>
+//#include <kdl/chainiksolvervel_pinv.hpp>
+//#include <kdl/chainiksolverpos_nr.hpp>
 
 // BOOST includes
 #include <boost/scoped_ptr.hpp>

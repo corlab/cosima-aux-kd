@@ -12,7 +12,6 @@ WrapperKDL::WrapperKDL(std::string const & name) : RTT::TaskContext(name) {
     //prepare operations
     addOperation("setDOFsize", &WrapperKDL::setDOFsize, this).doc("set DOF size");
     addOperation("loadModel", &WrapperKDL::loadModel, this).doc("load model");
-//    addOperation("computeKDLinformation", &WrapperKDL::computeKDLinformation, this).doc("computeKDLinformation");
     addOperation("displayCurrentState", &WrapperKDL::displayCurrentState, this).doc("print current state");
 
     //other stuff
@@ -402,7 +401,6 @@ void WrapperKDL::computeKDLinformation(
     this->castEigenVectorFtoD(robotstatus.angles, jntPosConfigPlusJntVelConfig_q.q.data);
     this->castEigenVectorFtoD(robotstatus.velocities, jntPosConfigPlusJntVelConfig_q.qdot.data);
 
-
     /* execute solvers for inv.Dynamics */
     // calculate matrices G(gravitation), M(inertia) and C(coriolis)
     id_dyn_solver->JntToGravity(jntPosConfigPlusJntVelConfig_q.q, G_);
@@ -449,17 +447,17 @@ void WrapperKDL::displayCurrentState() {
     std::cout << " chain NrOfJoints " << kdl_chain_.getNrOfJoints() << std::endl;
     std::cout << " chain getNrOfSegments " << kdl_chain_.getNrOfSegments() << std::endl;
 
-    std::cout << " angles " << in_robotstatus_var.angles << std::endl;
-    std::cout << " velocities " << in_robotstatus_var.velocities << std::endl;
-    std::cout << " inertia " << out_inertia_var << std::endl;
-    std::cout << " gravity " << out_gravity_var << std::endl;
-    std::cout << " coriolis " << out_coriolis_var << std::endl;
-    std::cout << " coriolisAndGravity " << out_coriolisAndGravity_var << std::endl;
-    std::cout << " cartPos " << out_cartPos_var << std::endl;
-    std::cout << " cartVel " << out_cartVel_var << std::endl;
-    std::cout << " cartAcc " << out_cartAcc_var << std::endl;
-    std::cout << " jacobian " << out_jacobian_var << std::endl;
-    std::cout << " jacobianDot " << out_jacobianDot_var << std::endl;
+    std::cout << " angles \n" << in_robotstatus_var.angles << std::endl;
+    std::cout << " velocities \n" << in_robotstatus_var.velocities << std::endl;
+    std::cout << " inertia \n" << out_inertia_var << std::endl;
+    std::cout << " gravity \n" << out_gravity_var << std::endl;
+    std::cout << " coriolis \n" << out_coriolis_var << std::endl;
+    std::cout << " coriolisAndGravity \n" << out_coriolisAndGravity_var << std::endl;
+    std::cout << " cartPos \n" << out_cartPos_var << std::endl;
+    std::cout << " cartVel \n" << out_cartVel_var << std::endl;
+    std::cout << " cartAcc \n" << out_cartAcc_var << std::endl;
+    std::cout << " jacobian \n" << out_jacobian_var << std::endl;
+    std::cout << " jacobianDot \n" << out_jacobianDot_var << std::endl;
     std::cout << "############## WrapperKDL State end " << std::endl;
 }
 

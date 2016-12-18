@@ -15,8 +15,8 @@ setActivity("gazebo",0,10,ORO_SCHED_OTHER)
 gazebo.argv = strings("--verbose")
 gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 
-loadComponent("coman_gazebo","cogimon::robotSim")
-setActivity("coman_gazebo",0,11,ORO_SCHED_OTHER)
+loadComponent("robot_gazebo","cogimon::robotSim")
+setActivity("robot_gazebo",0,11,ORO_SCHED_OTHER)
 
 var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical.world"
 gazebo.world_path = path_world
@@ -27,13 +27,13 @@ gazebo.toggleDynamicsSimulation(false)
 
 gazebo.spawn_model("kuka", "model://kuka-lwr-4plus", 10)
 
-coman_gazebo.getModel("kuka")
+robot_gazebo.getModel("kuka")
 var int DOFsize = 7;
 
 var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.urdf"
 var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/kuka-lwr-4plus/model.srdf"
-coman_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
-coman_gazebo.configure()
+robot_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+robot_gazebo.configure()
 
 var bool translationOnly = true;
 var int TaskSpaceDimension = 3;
@@ -164,8 +164,8 @@ connect("forcecontroller.out_torques_port", "torquesuperimposer.in_torquesC_port
 
 # connect all auxiliaries
 var ConnPolicy cp_aux;
-connect("coman_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
-connect("coman_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+connect("robot_gazebo.full_arm_JointFeedback", "fkin.jointFB", cp_aux)
+connect("robot_gazebo.full_arm_JointFeedback", "idyn.jointFB", cp_aux)
 
 
 connect("fkin.jac_task", "caux.jac", cp_aux)
@@ -228,10 +228,10 @@ connect("caux.pMatrix", "torquesuperimposer.in_projection_port", cp_aux_nullspac
 # connect TorqueSuperImposer to ROBOT
 ###
 var ConnPolicy cp_torquesuperimposer_robot;
-connect("torquesuperimposer.out_torques_port", "coman_gazebo.full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
+connect("torquesuperimposer.out_torques_port", "robot_gazebo.full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
 
 
-coman_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
+robot_gazebo.setControlMode("full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
 
 

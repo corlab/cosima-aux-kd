@@ -31,13 +31,14 @@ var int DOFsize = 7;
 var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.urdf"
 var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.srdf"
 robot_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+robot_gazebo.configure()
 
 #var bool translationOnly = true;
 #var int TaskSpaceDimension = 3;
+#var int CstrSpaceDimension = 3;
 var bool translationOnly = false;
 var int TaskSpaceDimension = 6;
-
-robot_gazebo.configure()
+var int CstrSpaceDimension = 6;
 
 #set initial configuration
 var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(14)
@@ -74,28 +75,19 @@ initJointAngles.angles[12] = 0.0
 initJointAngles.angles[13] = 0.0 
 gazebo.setInitialConfigurationForModel("myrobo", initJointAngles);
 
-loadComponent("fkin", "cosima::ForwardKinematics")
+loadComponent("fkin", "WrapperKDL")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
-fkin.setBaseAndTip("krc_base","left_lwr_tool_link")
+fkin.loadModel(path_model_urdf, "krc_base","left_lwr_tool_link")
 fkin.setDOFsize(DOFsize);
-fkin.setTranslationOnly(translationOnly);
-fkin.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 fkin.configure()
 
-loadComponent("idyn", "cosima::InverseDynamics")
-setActivity("idyn",0.01,10,ORO_SCHED_OTHER)
-idyn.setBaseAndTip("krc_base","left_lwr_tool_link")
-idyn.setDOFsize(DOFsize);
-idyn.setTranslationOnly(translationOnly);
-idyn.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
-idyn.configure()
-
-loadComponent("caux", "cosima::ConstrainedAuxiliaries")
+loadComponent("caux", "ConstrainedAuxiliaries")
 setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
-caux.setTranslationOnly(translationOnly);
+caux.setTaskSpaceDimension(TaskSpaceDimension);
+caux.setCstrSpaceDimension(CstrSpaceDimension);
+caux.preparePorts();
 caux.configure()
-
 
 # load controller related stuff
 # load ReachingTask
@@ -129,37 +121,36 @@ connect("reachingtask.out_reachingacceleration_port", "positioncontroller.in_des
 
 # connect all auxiliaries
 var ConnPolicy cp_aux;
-connect("robot_gazebo.left_full_arm_JointFeedback", "fkin.jointFB", cp_aux)
-connect("robot_gazebo.left_full_arm_JointFeedback", "idyn.jointFB", cp_aux)
+connect("robot_gazebo.left_full_arm_JointFeedback", "fkin.in_robotstatus_port", cp_aux)
 
+connect("fkin.out_jacobian_port", "caux.in_jacobianTask_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotTask_port", cp_aux)
+connect("fkin.out_jacobian_port", "caux.in_jacobianCstr_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotCstr_port", cp_aux)
 
-connect("fkin.jac_task", "caux.jac", cp_aux)
-connect("fkin.jac_full", "caux.jac_full", cp_aux)
-connect("fkin.jacDot_task", "caux.jacDot", cp_aux)
-connect("fkin.jacDot_full", "caux.jacDot_full", cp_aux)
-connect("idyn.inertia", "caux.inertia", cp_aux)
+connect("fkin.out_inertia_port", "caux.in_inertia_port", cp_aux)
 
 ###
 # connect AUX to PositionController
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("fkin.jac_full", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("fkin.jacDot_full", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("fkin.out_jacobian_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.out_jacobianDot_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
-connect("fkin.position", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
-connect("fkin.velocity", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+connect("fkin.out_cartPos_port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.out_cartVel_port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
 
-connect("fkin.out_jointFB", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
+connect("fkin.out_robotstatus_port", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
 
 # dynamics part
-connect("idyn.hVector", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+connect("fkin.out_coriolisAndGravity_port", "positioncontroller.in_h_port", cp_aux_positioncontroller)
 
 # constrained part
-connect("caux.lambdaConstrained", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
-connect("idyn.inertia", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
-connect("caux.pMatrix", "positioncontroller.in_P_port", cp_aux_positioncontroller)
-connect("caux.cConstrained", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+connect("caux.out_lambdaCstr_port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("fkin.out_inertia_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.out_P_port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
+connect("caux.out_CCstr_port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
 
 
@@ -174,7 +165,6 @@ gazebo.toggleDynamicsSimulation(true)
 
 
 fkin.start()
-idyn.start()
 caux.start()
 # start controller related components
 reachingtask.start()
@@ -189,6 +179,24 @@ positioncontroller.start()
 reachingtask.setReachingPosition(-0.55, 0.3, 0.85);
 #reachingtask.setReachingOrientationAxisAngle(0.0, -3.14, 0.0);
 reachingtask.setReachingOrientationEulerZYXAngle(0.0, -3.14, 0.0);
+#reachingtask.setReachingOrientationAxisAngle(1.57, 0.0, 0.0);
+
+var eigen_vector pose1 = eigen_vector(6);
+pose1[0] = -0.55
+pose1[1] =  0.3
+pose1[2] =  0.85
+pose1[3] =  0.0
+pose1[4] = -3.14
+pose1[5] =  0.0
+
+var eigen_vector pose2 = eigen_vector(6);
+pose2[0] = -0.55
+pose2[1] =  0.14
+pose2[2] =  1.05
+pose2[3] =  1.57
+pose2[4] =  0.0
+pose2[5] =  0.0
+reachingtask.setReaching(pose1);
 
 positioncontroller.displayStatus()
 

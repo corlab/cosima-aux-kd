@@ -18,7 +18,7 @@ gazebo.add_plugin("libRTTGazeboClockPlugin.so")
 loadComponent("robot_gazebo","cogimon::robotSim")
 setActivity("robot_gazebo",0,11,ORO_SCHED_OTHER)
 
-var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical-boris-base.world"
+var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical-boris-base-withBox.world"
 gazebo.world_path = path_world
 
 gazebo.configure()
@@ -29,7 +29,7 @@ gazebo.spawn_model_at_pos("boris-ft", "model://boris-ft", 0,0,0)
 
 
 robot_gazebo.getModel("boris-ft")
-var int DOFsize = 7;
+var int DOFsize = 14;
 
 var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.urdf"
 var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.srdf"
@@ -37,63 +37,122 @@ robot_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
 robot_gazebo.configure()
 
 #var bool translationOnly = true;
-#var int TaskSpaceDimension = 3;
+#var int TaskSpaceDimension = 6;
 #var int CstrSpaceDimension = 3;
 #var eigen_vector lambda = eigen_vector(3);
 var bool translationOnly = false;
-var int TaskSpaceDimension = 6;
+var int TaskSpaceDimension = 12;
 var int CstrSpaceDimension = 6;
 var eigen_vector lambda = eigen_vector(6);
 lambda[0] = 0
 lambda[1] = 0
-lambda[2] = -40
+lambda[2] = 0
 lambda[3] = 0
 lambda[4] = 0
 lambda[5] = 0
 
-var rstrt.kinematics.JointAngles desJointAngles_start = rstrt.kinematics.JointAngles(14)
-desJointAngles_start.angles[0] = 3.5
-desJointAngles_start.angles[1] = 1
-desJointAngles_start.angles[2] = -1
-desJointAngles_start.angles[3] = -1
-desJointAngles_start.angles[4] = -0.8
-desJointAngles_start.angles[5] = 1.1377
+var rstrt.kinematics.JointAngles desJointAngles_start = rstrt.kinematics.JointAngles(DOFsize)
+#left arm
+desJointAngles_start.angles[0] = 1.5
+#desJointAngles_start.angles[1] = 1.05
+desJointAngles_start.angles[1] = 0.8
+desJointAngles_start.angles[2] =-0.5
+desJointAngles_start.angles[3] =-1.5
+desJointAngles_start.angles[4] = 0.7
+desJointAngles_start.angles[5] = 0.7
 desJointAngles_start.angles[6] = 0.0 
 
-desJointAngles_start.angles[7] = 0.0 
-desJointAngles_start.angles[8] = 0.0 
-desJointAngles_start.angles[9] = 0.0 
-desJointAngles_start.angles[10] = 0.0 
-desJointAngles_start.angles[11] = 0.0 
-desJointAngles_start.angles[12] = 0.0 
-desJointAngles_start.angles[13] = 0.0 
+#desJointAngles_start.angles[0] = 0.461369
+desJointAngles_start.angles[0] = 0.861369
+#desJointAngles_start.angles[1] = 1.84417
+desJointAngles_start.angles[1] = 1.44417
+desJointAngles_start.angles[2] =-1.54299
+desJointAngles_start.angles[3] = 1.34663
+desJointAngles_start.angles[4] = 1.55174
+desJointAngles_start.angles[5] = 1.47731
+desJointAngles_start.angles[6] = 0.0 
+#gazebo.setInitialConfigurationForModel("boris-ft", desJointAngles_start);
+#right arm
+desJointAngles_start.angles[7] = 1.65
+#desJointAngles_start.angles[8] =-1.1
+desJointAngles_start.angles[8] =-0.85
+desJointAngles_start.angles[9] = 0.6
+desJointAngles_start.angles[10]= 1.5
+desJointAngles_start.angles[11]=-0.9
+desJointAngles_start.angles[12]=-1.1
+desJointAngles_start.angles[13]= 0.0
+
+#desJointAngles_start.angles[7] =-0.46589
+desJointAngles_start.angles[7] =-0.86589
+#desJointAngles_start.angles[8] = 1.84609
+desJointAngles_start.angles[8] = 1.44609
+desJointAngles_start.angles[9] =-1.60562
+desJointAngles_start.angles[10]=-1.35433
+desJointAngles_start.angles[11]= 1.58999
+desJointAngles_start.angles[12]= 1.4589
+desJointAngles_start.angles[13]= 0.0
+#gazebo.setInitialConfigurationForModel("boris-ft", desJointAngles_start);
 
 var rstrt.kinematics.JointAngles desJointAngles = rstrt.kinematics.JointAngles(DOFsize)
-#desJointAngles.angles[0] = 1.8
-#desJointAngles.angles[1] =1
-#desJointAngles.angles[2] = -1
-#desJointAngles.angles[3] = -1
-#desJointAngles.angles[4] = -0.5
-#desJointAngles.angles[5] = 0.7
-#desJointAngles.angles[6] = 0.0 
-desJointAngles.angles[0] = 0.72
-desJointAngles.angles[1] = 1.12
-desJointAngles.angles[2] = 0.59
-desJointAngles.angles[3] =-1.31
-desJointAngles.angles[4] =-2.11
-desJointAngles.angles[5] = 1.32
-desJointAngles.angles[6] = 0.00 
+#left arm
+desJointAngles.angles[0] = 1.5
+desJointAngles.angles[1] = 1.05
+desJointAngles.angles[2] =-0.5
+desJointAngles.angles[3] =-1.5
+desJointAngles.angles[4] = 0.5
+desJointAngles.angles[5] = 0.7
+desJointAngles.angles[6] = 0.0 
 
-gazebo.setInitialConfigurationForModel("boris-ft", desJointAngles_start);
+desJointAngles.angles[0] = 0.461369
+desJointAngles.angles[1] = 1.84417
+desJointAngles.angles[2] =-1.54299
+desJointAngles.angles[3] = 1.34663
+desJointAngles.angles[4] = 1.55174
+desJointAngles.angles[5] = 1.47731
+desJointAngles.angles[6] = 0.0 
 
-loadComponent("fkin", "WrapperKDL")
+#right arm
+desJointAngles.angles[7] = 1.65
+desJointAngles.angles[8] =-1.1
+desJointAngles.angles[9] = 0.6
+desJointAngles.angles[10]= 1.5
+desJointAngles.angles[11]=-0.9
+desJointAngles.angles[12]=-1.1
+desJointAngles.angles[13]= 0.0
+
+desJointAngles.angles[7] =-0.46589
+desJointAngles.angles[8] = 1.84609
+desJointAngles.angles[9] =-1.60562
+desJointAngles.angles[10]=-1.35433
+desJointAngles.angles[11]= 1.58999
+desJointAngles.angles[12]= 1.4589
+desJointAngles.angles[13]= 0.0
+
+#load FeedbackCombiner
+loadComponent("combiner", "FeedbackCombiner")
+setActivity("combiner",0.01,20,ORO_SCHED_OTHER)
+combiner.setDOFsize(DOFsize);
+combiner.addChainDOFsize(7)
+combiner.addChainDOFsize(7)
+combiner.preparePorts("")
+
+#load TorqueCommandSeperator
+loadComponent("seperator", "TorqueCommandSeperator")
+setActivity("seperator",0.01,20,ORO_SCHED_OTHER)
+seperator.setDOFsize(DOFsize);
+seperator.addChainDOFsize(7)
+seperator.addChainDOFsize(7)
+seperator.preparePorts("")
+
+loadComponent("fkin", "WrapperKDLBoris")
 setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
-fkin.loadModel(path_model_urdf, "krc_base","left_lwr_tool_link")
+fkin.loadModel(path_model_urdf, "krc_base","left_lwr_tool_link","right_lwr_tool_link")
 fkin.setDOFsize(DOFsize);
 fkin.configure()
 
-loadComponent("task", "TaskDescriberSingleArm")
+loadComponent("task", "TaskDescriberDoubleArm")
 setActivity("task",0.01,10,ORO_SCHED_OTHER)
+task.loadModel(path_model_urdf, "left_lwr_tool_link","right_lwr_tool_link")
 task.setDOFsize(DOFsize);
 task.configure()
 
@@ -109,20 +168,21 @@ caux.configure()
 #load joint position controller
 loadComponent("jointposcontroller","JointPositionCtrl")
 setActivity("jointposcontroller",0.01,30,ORO_SCHED_OTHER)
-jointposcontroller.setDOFsizeAndGains(7,100,3)
+jointposcontroller.setDOFsizeAndGains(DOFsize,100,3)
 jointposcontroller.configure()
-jointposcontroller.setDesiredJointAngles(desJointAngles)
+jointposcontroller.setDesiredJointAngles(desJointAngles_start)
 
 
 # load controller related stuff
 # load TrajectoryGenerator
-loadComponent("trajectorygenerator", "TrajectoryGenerator")
+loadComponent("trajectorygenerator", "TrajectoryGeneratorBoris")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
 trajectorygenerator.setTranslationOnly(translationOnly);
-trajectorygenerator.setCenter(-0.50,0.3,0.83)
-trajectorygenerator.radius = 0.1
 trajectorygenerator.setWaitTime(5)
+trajectorygenerator.setObjectCenter(-0.55,0.0,1.05)
+trajectorygenerator.setObjectSize(0.28)
 trajectorygenerator.preparePorts()
+trajectorygenerator.factor=0.25;
 trajectorygenerator.configure()
 
 # load PositionController
@@ -130,10 +190,10 @@ loadComponent("positioncontroller", "PositionController")
 setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
 positioncontroller.setTranslationOnly(translationOnly);
 positioncontroller.setDOFsize(DOFsize);
-positioncontroller.setConstrainedVersionMode(true);
+positioncontroller.setConstrainedVersionMode(false);
 positioncontroller.setTaskSpaceDimension(TaskSpaceDimension);
-positioncontroller.setGains(200,10);
-positioncontroller.setGainsOrientation(450,10);
+positioncontroller.setGains(50,10);
+positioncontroller.setGainsOrientation(100,5);
 positioncontroller.preparePorts();
 positioncontroller.configure();
 
@@ -150,7 +210,7 @@ setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
 nullspacecontroller.setTaskSpaceDimension(TaskSpaceDimension);
 nullspacecontroller.preparePorts();
-nullspacecontroller.setGains(2,1);
+nullspacecontroller.setGains(10,0.1);
 nullspacecontroller.setDesiredAngles(desJointAngles)
 nullspacecontroller.configure()
 
@@ -168,13 +228,13 @@ forcecontroller.configure()
 loadComponent("torquesuperimposer", "TorqueSuperimposer")
 setActivity("torquesuperimposer",0.01,29,ORO_SCHED_OTHER)
 torquesuperimposer.setDOFsize(DOFsize);
-torquesuperimposer.setConstrainedVersionMode(true);
+torquesuperimposer.setConstrainedVersionMode(false);
 torquesuperimposer.configure()
 
 #load torqueTransition
 loadComponent("torqueTransition", "TorqueTransition")
 setActivity("torqueTransition",0.01,30,ORO_SCHED_OTHER)
-torqueTransition.setDOFsizeAndTransitionTime(7, 1.0)
+torqueTransition.setDOFsizeAndTransitionTime(DOFsize,5.1)
 torqueTransition.configure()
 
 # connect PositionController to TorqueSuperimposer
@@ -192,15 +252,21 @@ connect("forcecontroller.out_torques_port", "torquesuperimposer.in_torquesC_port
 
 # connect all auxiliaries
 var ConnPolicy cp_aux;
-connect("robot_gazebo.left_full_arm_JointFeedback", "fkin.in_robotstatus_port", cp_aux)
-
+connect("robot_gazebo.left_full_arm_JointFeedback", "combiner.in_robotstatus_port_0", cp_aux)
+connect("robot_gazebo.right_full_arm_JointFeedback", "combiner.in_robotstatus_port_1", cp_aux)
+connect("combiner.out_robotstatus_port", "fkin.in_robotstatus_port", cp_aux)
+connect("combiner.out_robotstatus_port", "task.in_robotstatus_port", cp_aux)
 connect("fkin.out_jacobian_port", "task.in_jacobian_port", cp_aux)
 connect("fkin.out_jacobianDot_port", "task.in_jacobianDot_port", cp_aux)
 
-connect("task.out_jacobianTask_port", "caux.in_jacobianTask_port", cp_aux)
-connect("task.out_jacobianDotTask_port", "caux.in_jacobianDotTask_port", cp_aux)
-connect("task.out_jacobianCstr_port", "caux.in_jacobianCstr_port", cp_aux)
-connect("task.out_jacobianDotCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
+#connect("task.out_jacobianTask_port", "caux.in_jacobianTask_port", cp_aux)
+#connect("task.out_jacobianDotTask_port", "caux.in_jacobianDotTask_port", cp_aux)
+#connect("task.out_jacobianCstr_port", "caux.in_jacobianCstr_port", cp_aux)
+#connect("task.out_jacobianDotCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
+connect("fkin.out_jacobian_port", "caux.in_jacobianTask_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotTask_port", cp_aux)
+connect("fkin.out_jacobian_port", "caux.in_jacobianCstr_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotCstr_port", cp_aux)
 
 connect("fkin.out_inertia_port", "caux.in_inertia_port", cp_aux)
 
@@ -212,8 +278,8 @@ connect("fkin.out_coriolisAndGravity_port", "forcecontroller.in_h_port", cp_aux)
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("task.out_jacobianTask_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("task.out_jacobianDotTask_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("task.out_jacobianFull_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("task.out_jacobianDotFull_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
 connect("fkin.out_cartPos_port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
 connect("fkin.out_cartVel_port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
@@ -226,7 +292,7 @@ connect("fkin.out_coriolisAndGravity_port", "positioncontroller.in_h_port", cp_a
 
 # constrained part
 connect("caux.out_lambdaCstr_port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
-connect("caux.out_MCstr_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("fkin.out_inertia_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
 connect("caux.out_P_port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
 connect("caux.out_CCstr_port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
@@ -242,7 +308,7 @@ connect("caux.out_P_port", "forcecontroller.in_p_port", cp_aux_positioncontrolle
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("task.out_jacobianTask_port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("task.out_jacobianFull_port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
 connect("fkin.out_robotstatus_port", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
@@ -258,24 +324,27 @@ connect("caux.out_P_port", "torquesuperimposer.in_projection_port", cp_aux_nulls
 ###
 # connect TorqueSuperImposer to ROBOT
 ###
-var ConnPolicy cp_torquesuperimposer_robot;
-#connect("torquesuperimposer.out_torques_port", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
 
 ### connections jointposcontroller
 var ConnPolicy cp_jointposcontroller;
 connect("jointposcontroller.out_torques_port","torqueTransition.in_torquesA_port",cp_jointposcontroller)
 connect("fkin.out_robotstatus_port","jointposcontroller.in_robotstatus_port",cp_jointposcontroller)
+connect("fkin.out_coriolisAndGravity_port","jointposcontroller.in_coriolisAndGravity_port",cp_jointposcontroller)
 
 #torquetransition
 var ConnPolicy cp_torqueTransition;
 connect("torquesuperimposer.out_torques_port","torqueTransition.in_torquesB_port",cp_torqueTransition)
-connect("torqueTransition.out_torques_port", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
 
+connect("torqueTransition.out_torques_port", "seperator.in_torques_port", cp_torqueTransition)
+connect("seperator.out_torques_port_0", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_torqueTransition)
+connect("seperator.out_torques_port_1", "robot_gazebo.right_full_arm_JointTorqueCtrl", cp_torqueTransition)
 
 robot_gazebo.setControlMode("left_full_arm", "JointTorqueCtrl")
+robot_gazebo.setControlMode("right_full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
 
-
+combiner.start()
+seperator.start()
 task.start()
 fkin.start()
 caux.start()
@@ -288,7 +357,7 @@ torquesuperimposer.start()
 jointposcontroller.start()
 torqueTransition.start()
 
-#gazebo.stop()
+
 #generate graph file
 import("rtt_dot_service")
 loadService("this", "dot")

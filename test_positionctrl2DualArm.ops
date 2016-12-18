@@ -1,0 +1,254 @@
+import("eigen_typekit")
+import("kdl_typekit")
+import("rst-rt_typekit")
+
+import("rtt_gazebo_embedded")
+import("rtt-gazebo-robot-sim")
+
+import("cosima-aux-kd")
+
+import("LWRController")
+#import("WrapperIDynTreeBoris")
+require("os")
+
+loadComponent("gazebo","RTTGazeboEmbedded")
+setActivity("gazebo",0,10,ORO_SCHED_OTHER)
+gazebo.argv = strings("--verbose")
+gazebo.add_plugin("libRTTGazeboClockPlugin.so")
+
+loadComponent("robot_gazebo","cogimon::robotSim")
+setActivity("robot_gazebo",0,11,ORO_SCHED_OTHER)
+
+var string path_world=os.getenv("prefix")+"/cogimon-minimal-nightly/etc/cogimon-scenarios/scenario-wipe-board/world/scn-wipe-board-vertical-boris-base-withBox.world"
+#gazebo.world_path = path_world
+
+gazebo.configure()
+gazebo.start()
+gazebo.toggleDynamicsSimulation(false)
+
+gazebo.spawn_model_at_pos("myrobo", "model://boris-ft", 0,0,0)
+
+robot_gazebo.getModel("myrobo")
+var int DOFsize = 14;
+
+var string path_model_urdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.urdf"
+var string path_model_srdf = os.getenv("GAZEBO_MODEL_PATH")+"/boris-ft/model.srdf"
+robot_gazebo.loadURDFAndSRDF(path_model_urdf, path_model_srdf)
+robot_gazebo.configure()
+
+#var bool translationOnly = true;
+#var int TaskSpaceDimension = 6;
+#var int CstrSpaceDimension = 6;
+var bool translationOnly = false;
+var int TaskSpaceDimension = 12;
+var int CstrSpaceDimension = 12;
+
+#set initial configuration
+var rstrt.kinematics.JointAngles initJointAngles = rstrt.kinematics.JointAngles(14)
+initJointAngles.angles[0] = 0.0410
+initJointAngles.angles[1] = 0.0606
+initJointAngles.angles[2] = -0.0154
+initJointAngles.angles[3] = -1.3954
+initJointAngles.angles[4] = -0.0548
+initJointAngles.angles[5] = 1.1377
+initJointAngles.angles[6] = 0.0
+
+initJointAngles.angles[0] = 1.8
+initJointAngles.angles[1] =1
+initJointAngles.angles[2] = -1
+initJointAngles.angles[3] = -1
+initJointAngles.angles[4] = -0.5
+initJointAngles.angles[5] = 0.7
+initJointAngles.angles[6] = 0.0 
+
+initJointAngles.angles[0] = 0.72
+initJointAngles.angles[1] = 1.12
+initJointAngles.angles[2] = 0.59
+initJointAngles.angles[3] =-1.31
+initJointAngles.angles[4] =-2.11
+initJointAngles.angles[5] = 1.32
+initJointAngles.angles[6] = 0.00 
+
+initJointAngles.angles[7] = 0.0 
+initJointAngles.angles[8] = 0.0 
+initJointAngles.angles[9] = 0.0 
+initJointAngles.angles[10] = 0.0 
+initJointAngles.angles[11] = 0.0 
+initJointAngles.angles[12] = 0.0 
+initJointAngles.angles[13] = 0.0 
+#gazebo.setInitialConfigurationForModel("myrobo", initJointAngles);
+
+#load FeedbackCombiner
+loadComponent("combiner", "FeedbackCombiner")
+setActivity("combiner",0.01,20,ORO_SCHED_OTHER)
+combiner.setDOFsize(DOFsize);
+combiner.addChainDOFsize(7)
+combiner.addChainDOFsize(7)
+combiner.preparePorts("")
+
+#load TorqueCommandSeperator
+loadComponent("seperator", "TorqueCommandSeperator")
+setActivity("seperator",0.01,20,ORO_SCHED_OTHER)
+seperator.setDOFsize(DOFsize);
+seperator.addChainDOFsize(7)
+seperator.addChainDOFsize(7)
+seperator.preparePorts("")
+
+#loadComponent("fkinB", "WrapperIDynTreeBoris")
+#setActivity("fkinB",0.01,10,ORO_SCHED_OTHER)
+#fkinB.loadModel(path_model_urdf, "krc_base","left_lwr_tool_link","right_lwr_tool_link")
+#fkinB.setDOFsize(DOFsize);
+#fkinB.configure()
+#fkinB.start()
+
+loadComponent("fkin", "WrapperKDLBoris")
+setActivity("fkin",0.01,10,ORO_SCHED_OTHER)
+fkin.loadModel(path_model_urdf, "krc_base","left_lwr_tool_link","right_lwr_tool_link")
+fkin.setDOFsize(DOFsize);
+fkin.configure()
+
+loadComponent("caux", "ConstrainedAuxiliaries")
+setActivity("caux",0.01,10,ORO_SCHED_OTHER)
+caux.setDOFsize(DOFsize);
+caux.setTaskSpaceDimension(TaskSpaceDimension);
+caux.setCstrSpaceDimension(CstrSpaceDimension);
+caux.preparePorts();
+caux.configure()
+
+# load controller related stuff
+# load ReachingTask
+loadComponent("reachingtask", "ReachingTask")
+setActivity("reachingtask",0.01,30,ORO_SCHED_OTHER)
+reachingtask.setTranslationOnly(translationOnly);
+reachingtask.setTaskSpaceDimension(TaskSpaceDimension);
+reachingtask.preparePorts();
+var eigen_vector pose1 = eigen_vector(12);
+pose1[0] = -0.55
+pose1[1] =  0.3
+pose1[2] =  0.85
+pose1[3] =  0.0
+pose1[4] = -3.14
+pose1[5] =  0.0
+
+pose1[6] = -0.55
+pose1[7] = -0.3
+pose1[8] =  0.85
+pose1[9] =  0.0
+pose1[10]= -3.14
+pose1[11]=  0.0
+
+var eigen_vector pose2 = eigen_vector(12);
+pose2[0] = -0.55
+pose2[1] =  0.14
+pose2[2] =  1.05
+pose2[3] =  1.57
+pose2[4] =  0.0
+pose2[5] =  0.0
+
+pose2[6] = -0.55
+pose2[7] = -0.14
+pose2[8] =  1.05
+pose2[9] = -1.57
+pose2[10]=  0.0
+pose2[11]=  0.0
+reachingtask.setReaching(pose2);
+reachingtask.configure();
+
+# load PositionController
+loadComponent("positioncontroller", "PositionController")
+setActivity("positioncontroller",0.01,30,ORO_SCHED_OTHER)
+positioncontroller.setTranslationOnly(translationOnly);
+positioncontroller.setDOFsize(DOFsize);
+positioncontroller.setConstrainedVersionMode(false);
+positioncontroller.setTaskSpaceDimension(TaskSpaceDimension);
+positioncontroller.setGains(100,10);
+positioncontroller.setGainsOrientation(150,10);
+positioncontroller.preparePorts();
+positioncontroller.configure();
+
+# connect ReachingTask to PositionController
+var ConnPolicy cp_traj_posCtrl;
+connect("reachingtask.out_reachingposition_port", "positioncontroller.in_desiredTaskSpacePosition_port", cp_traj_posCtrl)
+connect("reachingtask.out_reachingvelocity_port", "positioncontroller.in_desiredTaskSpaceVelocity_port", cp_traj_posCtrl)
+connect("reachingtask.out_reachingacceleration_port", "positioncontroller.in_desiredTaskSpaceAcceleration_port", cp_traj_posCtrl)
+
+
+# connect all auxiliaries
+var ConnPolicy cp_aux;
+connect("robot_gazebo.left_full_arm_JointFeedback", "combiner.in_robotstatus_port_0", cp_aux)
+connect("robot_gazebo.right_full_arm_JointFeedback", "combiner.in_robotstatus_port_1", cp_aux)
+connect("combiner.out_robotstatus_port", "fkin.in_robotstatus_port", cp_aux)
+#connect("combiner.out_robotstatus_port", "fkinB.in_robotstatus_port", cp_aux)
+
+connect("fkin.out_jacobian_port", "caux.in_jacobianTask_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotTask_port", cp_aux)
+connect("fkin.out_jacobian_port", "caux.in_jacobianCstr_port", cp_aux)
+connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotCstr_port", cp_aux)
+
+connect("fkin.out_inertia_port", "caux.in_inertia_port", cp_aux)
+
+###
+# connect AUX to PositionController
+###
+var ConnPolicy cp_aux_positioncontroller;
+# kinematics part
+connect("fkin.out_jacobian_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("fkin.out_jacobianDot_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+
+connect("fkin.out_cartPos_port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
+connect("fkin.out_cartVel_port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
+
+connect("fkin.out_robotstatus_port", "positioncontroller.in_robotstatus_port", cp_aux_positioncontroller)
+
+# dynamics part
+connect("fkin.out_coriolisAndGravity_port", "positioncontroller.in_h_port", cp_aux_positioncontroller)
+
+# constrained part
+connect("caux.out_lambdaCstr_port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
+connect("fkin.out_inertia_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.out_P_port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
+connect("caux.out_CCstr_port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
+
+
+
+###
+# connect PositionController to ROBOT
+###
+var ConnPolicy cp_robot;
+connect("positioncontroller.out_torques_port", "seperator.in_torques_port", cp_robot)
+connect("seperator.out_torques_port_0", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_robot)
+connect("seperator.out_torques_port_1", "robot_gazebo.right_full_arm_JointTorqueCtrl", cp_robot)
+
+robot_gazebo.setControlMode("left_full_arm", "JointTorqueCtrl")
+robot_gazebo.setControlMode("right_full_arm", "JointTorqueCtrl")
+gazebo.toggleDynamicsSimulation(true)
+
+combiner.start()
+seperator.start()
+fkin.start()
+#fkinB.start()
+caux.start()
+# start controller related components
+reachingtask.start()
+positioncontroller.start()
+
+#generate graph file
+#import("rtt_dot_service")
+#loadService("this", "dot")
+#dot.generate
+
+
+#filelogger
+loadComponent("filereporter", "OCL::FileReporting")
+loadService("filereporter", "marshalling")
+connectPeers("filereporter","fkin")
+connectPeers("filereporter","reachingtask")
+connectPeers("filereporter","positioncontroller")
+filereporter.reportPort("fkin", "out_cartPos_port")
+filereporter.reportPort("fkin", "out_cartVel_port")
+filereporter.reportPort("reachingtask", "out_reachingposition_port")
+filereporter.reportPort("reachingtask", "out_reachingvelocity_port")
+filereporter.reportPort("reachingtask", "out_reachingacceleration_port")
+filereporter.reportPort("positioncontroller", "out_force_port")
+filereporter.configure
+filereporter.start

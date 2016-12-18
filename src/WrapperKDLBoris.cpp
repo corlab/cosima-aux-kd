@@ -12,7 +12,6 @@ WrapperKDLBoris::WrapperKDLBoris(std::string const & name) : RTT::TaskContext(na
     //prepare operations
     addOperation("setDOFsize", &WrapperKDLBoris::setDOFsize, this).doc("set DOF size");
     addOperation("loadModel", &WrapperKDLBoris::loadModel, this).doc("load model");
-//    addOperation("computeKDLinformation", &WrapperKDLBoris::computeKDLinformation, this).doc("computeKDLinformation");
     addOperation("displayCurrentState", &WrapperKDLBoris::displayCurrentState, this).doc("print current state");
 
     //other stuff
@@ -71,19 +70,19 @@ void WrapperKDLBoris::updateHook() {
 
         out_cartAcc_var = out_jacobianDot_var * in_robotstatus_var.velocities; //TODO: add out_jacobian_var * in_robotstatus_var.accelerations
 
-        out_cartPosTranslation_var = out_cartPos_var.head<6>();
-        out_cartVelTranslation_var = out_cartVel_var.head<6>();
-        out_cartAccTranslation_var = out_cartAcc_var.head<6>();
+//        out_cartPosTranslation_var = out_cartPos_var.head<6>();
+//        out_cartVelTranslation_var = out_cartVel_var.head<6>();
+//        out_cartAccTranslation_var = out_cartAcc_var.head<6>();
 
-        out_cartPosOrientation_var = out_cartPos_var.tail<6>();
-        out_cartVelOrientation_var = out_cartVel_var.tail<6>();
-        out_cartAccOrientation_var = out_cartAcc_var.tail<6>();
+//        out_cartPosOrientation_var = out_cartPos_var.tail<6>();
+//        out_cartVelOrientation_var = out_cartVel_var.tail<6>();
+//        out_cartAccOrientation_var = out_cartAcc_var.tail<6>();
 
-        out_jacobianTranslation_var = out_jacobian_var.topRows<6>();
-        out_jacobianDotTranslation_var = out_jacobianDot_var.topRows<6>();
+//        out_jacobianTranslation_var = out_jacobian_var.topRows<6>();
+//        out_jacobianDotTranslation_var = out_jacobianDot_var.topRows<6>();
 
-        out_jacobianOrientation_var = out_jacobian_var.bottomRows<6>();
-        out_jacobianDotOrientation_var = out_jacobianDot_var.bottomRows<6>();
+//        out_jacobianOrientation_var = out_jacobian_var.bottomRows<6>();
+//        out_jacobianDotOrientation_var = out_jacobianDot_var.bottomRows<6>();
 
     } else if (in_robotstatus_flow == RTT::NoData){
         out_robotstatus_var.angles.setZero();
@@ -186,8 +185,6 @@ void WrapperKDLBoris::loadModel(std::string modelname, std::string chain_root_li
     assert(chain_tip2_link_name.length() > 0);
     assert(exists_test(modelname) == true);
 
-    std::cout << " loadModel #######################" << std::endl;
-
     //init KDL tree and KDL chain
     //    robot_model = urdf::Model();
     if (!robot_model.initFile(modelname.c_str())) {
@@ -227,8 +224,6 @@ void WrapperKDLBoris::loadModel(std::string modelname, std::string chain_root_li
     jnt_to_jac_dot_solver2.reset(new KDL::ChainJntToJacDotSolver(kdl_chain2_));
     jnt_to_cart_pos_solver2.reset(new KDL::ChainFkSolverPos_recursive(kdl_chain2_));
     jnt_to_cart_vel_solver2.reset(new KDL::ChainFkSolverVel_recursive(kdl_chain2_));
-
-    std::cout << "  #######################" << std::endl;
 }
 
 
@@ -485,34 +480,22 @@ void WrapperKDLBoris::computeKDLinformation(
     this->castEigenMatrixDtoF(jac_dot2_.data, jacobianDot2);
 
     jacobian.setZero();
-    jacobian.block<3,7>(0,0) = jacobian1.topRows<3>();
-    jacobian.block<3,7>(3,7) = jacobian2.topRows<3>();
-    jacobian.block<3,7>(6,0) = jacobian1.bottomRows<3>();
-    jacobian.block<3,7>(9,7) = jacobian2.bottomRows<3>();
-
+    jacobian.topLeftCorner(6,kdl_chain1_.getNrOfJoints()) = jacobian1;
+    jacobian.bottomRightCorner(6,kdl_chain2_.getNrOfJoints()) = jacobian2;
     jacobianDot.setZero();
-    jacobianDot.block<3,7>(0,0) = jacobianDot1.topRows<3>();
-    jacobianDot.block<3,7>(3,7) = jacobianDot2.topRows<3>();
-    jacobianDot.block<3,7>(6,0) = jacobianDot1.bottomRows<3>();
-    jacobianDot.block<3,7>(9,7) = jacobianDot2.bottomRows<3>();
-
-//    jacobian.setZero();
-//    jacobian.topLeftCorner(6,kdl_chain1_.getNrOfJoints()) = jacobian1;
-//    jacobian.bottomRightCorner(6,kdl_chain2_.getNrOfJoints()) = jacobian2;
-//    jacobianDot.setZero();
-//    jacobianDot.topLeftCorner(6,kdl_chain1_.getNrOfJoints()) = jacobianDot1;
-//    jacobianDot.bottomRightCorner(6,kdl_chain2_.getNrOfJoints()) = jacobianDot2;
+    jacobianDot.topLeftCorner(6,kdl_chain1_.getNrOfJoints()) = jacobianDot1;
+    jacobianDot.bottomRightCorner(6,kdl_chain2_.getNrOfJoints()) = jacobianDot2;
 
     cartPos(0) = cartPosFrame1.p.x();
     cartPos(1) = cartPosFrame1.p.y();
     cartPos(2) = cartPosFrame1.p.z();
-    cartPos(3) = cartPosFrame2.p.x();
-    cartPos(4) = cartPosFrame2.p.y();
-    cartPos(5) = cartPosFrame2.p.z();
+    cartPos(3) = cartPosFrame1.M.GetRot().x();
+    cartPos(4) = cartPosFrame1.M.GetRot().y();
+    cartPos(5) = cartPosFrame1.M.GetRot().z();
 
-    cartPos(6) = cartPosFrame1.M.GetRot().x();
-    cartPos(7) = cartPosFrame1.M.GetRot().y();
-    cartPos(8) = cartPosFrame1.M.GetRot().z();
+    cartPos(6) = cartPosFrame2.p.x();
+    cartPos(7) = cartPosFrame2.p.y();
+    cartPos(8) = cartPosFrame2.p.z();
     cartPos(9) = cartPosFrame2.M.GetRot().x();
     cartPos(10)= cartPosFrame2.M.GetRot().y();
     cartPos(11)= cartPosFrame2.M.GetRot().z();
@@ -520,13 +503,13 @@ void WrapperKDLBoris::computeKDLinformation(
     cartVel(0) = cartVelFrame1.GetTwist().vel.x(); //similar to velFrame.p.v.x();
     cartVel(1) = cartVelFrame1.GetTwist().vel.y(); //similar to velFrame.p.v.y();
     cartVel(2) = cartVelFrame1.GetTwist().vel.z(); //similar to velFrame.p.v.z();
-    cartVel(3) = cartVelFrame2.GetTwist().vel.x(); //similar to velFrame.p.v.x();
-    cartVel(4) = cartVelFrame2.GetTwist().vel.y(); //similar to velFrame.p.v.y();
-    cartVel(5) = cartVelFrame2.GetTwist().vel.z(); //similar to velFrame.p.v.z();
+    cartVel(3) = cartVelFrame1.GetTwist().rot.x();
+    cartVel(4) = cartVelFrame1.GetTwist().rot.y();
+    cartVel(5) = cartVelFrame1.GetTwist().rot.z();
 
-    cartVel(6) = cartVelFrame1.GetTwist().rot.x();
-    cartVel(7) = cartVelFrame1.GetTwist().rot.y();
-    cartVel(8) = cartVelFrame1.GetTwist().rot.z();
+    cartVel(6) = cartVelFrame2.GetTwist().vel.x(); //similar to velFrame.p.v.x();
+    cartVel(7) = cartVelFrame2.GetTwist().vel.y(); //similar to velFrame.p.v.y();
+    cartVel(8) = cartVelFrame2.GetTwist().vel.z(); //similar to velFrame.p.v.z();
     cartVel(9) = cartVelFrame2.GetTwist().rot.x();
     cartVel(10)= cartVelFrame2.GetTwist().rot.y();
     cartVel(11)= cartVelFrame2.GetTwist().rot.z();
