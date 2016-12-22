@@ -4,16 +4,16 @@
  * Description:
  */
 
-#include "TaskDescriberDoubleArm.hpp"
+#include "TaskDescriberDualArm.hpp"
 #include <rtt/Component.hpp> // needed for the macro at the end of this file
 
 
-TaskDescriberDoubleArm::TaskDescriberDoubleArm(std::string const & name) : RTT::TaskContext(name) {
+TaskDescriberDualArm::TaskDescriberDualArm(std::string const & name) : RTT::TaskContext(name) {
     //prepare operations
-    addOperation("setDOFsize", &TaskDescriberDoubleArm::setDOFsize, this).doc("set DOF size");
-    addOperation("setContactTime", &TaskDescriberDoubleArm::setContactTime, this).doc("set ContactTime");
-    addOperation("loadModel", &TaskDescriberDoubleArm::loadModel, this).doc("load model");
-    addOperation("displayCurrentState", &TaskDescriberDoubleArm::displayCurrentState, this).doc("print current state");
+    addOperation("setDOFsize", &TaskDescriberDualArm::setDOFsize, this).doc("set DOF size");
+    addOperation("setContactTime", &TaskDescriberDualArm::setContactTime, this).doc("set ContactTime");
+    addOperation("loadModel", &TaskDescriberDualArm::loadModel, this).doc("load model");
+    addOperation("displayCurrentState", &TaskDescriberDualArm::displayCurrentState, this).doc("print current state");
 
     //other stuff
     contact_time = 0.0;
@@ -21,7 +21,7 @@ TaskDescriberDoubleArm::TaskDescriberDoubleArm(std::string const & name) : RTT::
     portsArePrepared = false;
 }
 
-bool TaskDescriberDoubleArm::configureHook() {
+bool TaskDescriberDualArm::configureHook() {
     // intializations and object creations go here. Each component should run this before being able to run
 
     //check conncetion of input port, the output ports must not necessarily be connected
@@ -31,7 +31,7 @@ bool TaskDescriberDoubleArm::configureHook() {
         return true;
 }
 
-bool TaskDescriberDoubleArm::startHook() {
+bool TaskDescriberDualArm::startHook() {
     // this method starts the component
 
     std::string ConstrainedAuxiliaries_string = "caux";
@@ -52,7 +52,7 @@ bool TaskDescriberDoubleArm::startHook() {
     return true;
 }
 
-void TaskDescriberDoubleArm::updateHook() {
+void TaskDescriberDualArm::updateHook() {
     // this is the actual body of a component. it is called on each cycle
 
     current_time = this->getSimulationTime();
@@ -171,16 +171,16 @@ void TaskDescriberDoubleArm::updateHook() {
     out_jacobianDotCstr_port.write(out_jacobianDotCstr_var);
 }
 
-void TaskDescriberDoubleArm::stopHook() {
+void TaskDescriberDualArm::stopHook() {
     // stops the component (update hook wont be  called anymore)
 }
 
-void TaskDescriberDoubleArm::cleanupHook() {
+void TaskDescriberDualArm::cleanupHook() {
     // cleaning the component data
     portsArePrepared = false;
 }
 
-void TaskDescriberDoubleArm::setDOFsize(unsigned int DOFsize){
+void TaskDescriberDualArm::setDOFsize(unsigned int DOFsize){
     assert(DOFsize > 0);
     this->DOFsize = DOFsize;
 
@@ -191,17 +191,17 @@ void TaskDescriberDoubleArm::setDOFsize(unsigned int DOFsize){
     this->preparePorts();
 }
 
-void TaskDescriberDoubleArm::setContactTime(float contactTime){
+void TaskDescriberDualArm::setContactTime(float contactTime){
     this->contact_time = contactTime;
 }
 
-double TaskDescriberDoubleArm::getSimulationTime() {
+double TaskDescriberDualArm::getSimulationTime() {
     return 1E-9
             * RTT::os::TimeService::ticks2nsecs(
                     RTT::os::TimeService::Instance()->getTicks());
 }
 
-void TaskDescriberDoubleArm::loadModel(std::string modelname, std::string chain_root_link_name, std::string chain_tip_link_name){
+void TaskDescriberDualArm::loadModel(std::string modelname, std::string chain_root_link_name, std::string chain_tip_link_name){
     assert(modelname.length() > 0);
     assert(chain_root_link_name.length() > 0);
     assert(chain_tip_link_name.length() > 0);
@@ -232,7 +232,7 @@ void TaskDescriberDoubleArm::loadModel(std::string modelname, std::string chain_
 }
 
 
-void TaskDescriberDoubleArm::preparePorts(){
+void TaskDescriberDualArm::preparePorts(){
     if (portsArePrepared){
         ports()->removePort("in_robotstatus_port");
         ports()->removePort("in_jacobian_port");
@@ -315,7 +315,7 @@ void TaskDescriberDoubleArm::preparePorts(){
     portsArePrepared = true;
 }
 
-bool TaskDescriberDoubleArm::exists_test(const std::string& name) {
+bool TaskDescriberDualArm::exists_test(const std::string& name) {
     if (FILE *file = fopen(name.c_str(), "r")) {
         fclose(file);
         return true;
@@ -324,24 +324,24 @@ bool TaskDescriberDoubleArm::exists_test(const std::string& name) {
     }
 }
 
-void TaskDescriberDoubleArm::castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f) {
+void TaskDescriberDualArm::castEigenVectorDtoF(Eigen::VectorXd const & d, Eigen::VectorXf & f) {
     f = d.cast <float> ();
 }
 
-void TaskDescriberDoubleArm::castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d) {
+void TaskDescriberDualArm::castEigenVectorFtoD(Eigen::VectorXf const & f, Eigen::VectorXd & d) {
     d = f.cast <double> ();
 }
 
-void TaskDescriberDoubleArm::castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f) {
+void TaskDescriberDualArm::castEigenMatrixDtoF(Eigen::MatrixXd const & d, Eigen::MatrixXf & f) {
     f = d.cast <float> ();
 }
 
-void TaskDescriberDoubleArm::castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d) {
+void TaskDescriberDualArm::castEigenMatrixFtoD(Eigen::MatrixXf const & f, Eigen::MatrixXd & d) {
     d = f.cast <double> ();
 }
 
-void TaskDescriberDoubleArm::displayCurrentState() {
-    std::cout << "############## TaskDescriberDoubleArm State begin " << std::endl;
+void TaskDescriberDualArm::displayCurrentState() {
+    std::cout << "############## TaskDescriberDualArm State begin " << std::endl;
     std::cout << " angles " << in_robotstatus_var.angles << std::endl;
     std::cout << " velocities " << in_robotstatus_var.velocities << std::endl;
 
@@ -353,7 +353,7 @@ void TaskDescriberDoubleArm::displayCurrentState() {
 
     std::cout << " jacobian cstr " << out_jacobianCstr_var << std::endl;
     std::cout << " jacobianDot cstr " << out_jacobianDotCstr_var << std::endl;
-    std::cout << "############## TaskDescriberDoubleArm State end " << std::endl;
+    std::cout << "############## TaskDescriberDualArm State end " << std::endl;
 }
 
 
@@ -361,4 +361,4 @@ void TaskDescriberDoubleArm::displayCurrentState() {
 //ORO_CREATE_COMPONENT_LIBRARY()
 
 // This macro, as you can see, creates the component. Every component should have this!
-ORO_LIST_COMPONENT_TYPE(TaskDescriberDoubleArm)
+ORO_LIST_COMPONENT_TYPE(TaskDescriberDualArm)

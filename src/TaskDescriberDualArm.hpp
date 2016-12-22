@@ -26,9 +26,9 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
-class TaskDescriberDoubleArm: public RTT::TaskContext {
+class TaskDescriberDualArm: public RTT::TaskContext {
 public:
-    TaskDescriberDoubleArm(std::string const & name);
+    TaskDescriberDualArm(std::string const & name);
 
     // RTT::TaskContext methods that are needed for any standard component and
     // should be implemented by user

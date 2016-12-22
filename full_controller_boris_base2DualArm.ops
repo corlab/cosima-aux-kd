@@ -150,7 +150,7 @@ fkin.loadModel(path_model_urdf, "krc_base","left_lwr_tool_link","right_lwr_tool_
 fkin.setDOFsize(DOFsize);
 fkin.configure()
 
-loadComponent("task", "TaskDescriberDoubleArm")
+loadComponent("task", "TaskDescriberDualArm")
 setActivity("task",0.01,10,ORO_SCHED_OTHER)
 task.loadModel(path_model_urdf, "left_lwr_tool_link","right_lwr_tool_link")
 task.setDOFsize(DOFsize);
