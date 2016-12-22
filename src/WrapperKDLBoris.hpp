@@ -78,18 +78,8 @@ private:
     RTT::OutputPort<Eigen::VectorXf> out_cartPos_port;
     RTT::OutputPort<Eigen::VectorXf> out_cartVel_port;
     RTT::OutputPort<Eigen::VectorXf> out_cartAcc_port;
-    RTT::OutputPort<Eigen::VectorXf> out_cartPosTranslation_port;
-    RTT::OutputPort<Eigen::VectorXf> out_cartVelTranslation_port;
-    RTT::OutputPort<Eigen::VectorXf> out_cartAccTranslation_port;
-    RTT::OutputPort<Eigen::VectorXf> out_cartPosOrientation_port;
-    RTT::OutputPort<Eigen::VectorXf> out_cartVelOrientation_port;
-    RTT::OutputPort<Eigen::VectorXf> out_cartAccOrientation_port;
     RTT::OutputPort<Eigen::MatrixXf> out_jacobian_port;
     RTT::OutputPort<Eigen::MatrixXf> out_jacobianDot_port;
-    RTT::OutputPort<Eigen::MatrixXf> out_jacobianTranslation_port;
-    RTT::OutputPort<Eigen::MatrixXf> out_jacobianDotTranslation_port;
-    RTT::OutputPort<Eigen::MatrixXf> out_jacobianOrientation_port;
-    RTT::OutputPort<Eigen::MatrixXf> out_jacobianDotOrientation_port;
 
     // Data flow:
     RTT::FlowStatus in_robotstatus_flow;
@@ -104,19 +94,8 @@ private:
     Eigen::VectorXf out_cartPos_var;
     Eigen::VectorXf out_cartVel_var;
     Eigen::VectorXf out_cartAcc_var;
-    Eigen::VectorXf out_cartPosTranslation_var;
-    Eigen::VectorXf out_cartVelTranslation_var;
-    Eigen::VectorXf out_cartAccTranslation_var;
-    Eigen::VectorXf out_cartPosOrientation_var;
-    Eigen::VectorXf out_cartVelOrientation_var;
-    Eigen::VectorXf out_cartAccOrientation_var;
     Eigen::MatrixXf out_jacobian_var;
     Eigen::MatrixXf out_jacobianDot_var;
-    Eigen::MatrixXf out_jacobianTranslation_var;
-    Eigen::MatrixXf out_jacobianDotTranslation_var;
-    Eigen::MatrixXf out_jacobianOrientation_var;
-    Eigen::MatrixXf out_jacobianDotOrientation_var;
-    Eigen::MatrixXf identity66, identity33;
     Eigen::MatrixXf jacobian1, jacobian2;
     Eigen::MatrixXf jacobianDot1, jacobianDot2;
     unsigned int DOFsize;

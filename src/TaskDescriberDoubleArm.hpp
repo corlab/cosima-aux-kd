@@ -39,6 +39,8 @@ public:
     void cleanupHook();
 
     void setDOFsize(unsigned int DOFsize);
+    void setContactTime(float contactTime);
+    double getSimulationTime();
     void loadModel(std::string modelname, std::string chain_root_link_name, std::string chain_tip_link_name);
     void preparePorts();
     bool exists_test(const std::string& name);
@@ -83,7 +85,17 @@ private:
     Eigen::MatrixXf out_jacobianDotCstr_var;
 
     unsigned int DOFsize;
+    float time_diff, current_time, contact_time;
     bool portsArePrepared;
+    bool currentMode;
+    TaskContext* ConstrainedAuxiliaries_ptr;
+    TaskContext* PositionController_ptr;
+    TaskContext* TorqueSuperimposer_ptr;
+    RTT::OperationCaller<void(bool)> setMode_ConstrainedAuxiliaries;
+    RTT::OperationCaller<void(bool)> setMode_PositionController;
+    RTT::OperationCaller<void(bool)> setMode_TorqueSuperimposer;
+    TaskContext* NullspaceController_ptr;
+    RTT::OperationCaller<void(float, float)> setGains_NullspaceController;
 
     //KDL types
     KDL::Tree kdl_tree; // KDL::Tree needed for KDL::Chain creation

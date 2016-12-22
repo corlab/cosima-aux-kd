@@ -45,7 +45,7 @@ var int TaskSpaceDimension = 12;
 var int CstrSpaceDimension = 6;
 var eigen_vector lambda = eigen_vector(6);
 lambda[0] = 0
-lambda[1] = 0
+lambda[1] = -50
 lambda[2] = 0
 lambda[3] = 0
 lambda[4] = 0
@@ -65,7 +65,7 @@ desJointAngles_start.angles[6] = 0.0
 #desJointAngles_start.angles[0] = 0.461369
 desJointAngles_start.angles[0] = 0.861369
 #desJointAngles_start.angles[1] = 1.84417
-desJointAngles_start.angles[1] = 1.44417
+desJointAngles_start.angles[1] = 1.14417
 desJointAngles_start.angles[2] =-1.54299
 desJointAngles_start.angles[3] = 1.34663
 desJointAngles_start.angles[4] = 1.55174
@@ -85,7 +85,7 @@ desJointAngles_start.angles[13]= 0.0
 #desJointAngles_start.angles[7] =-0.46589
 desJointAngles_start.angles[7] =-0.86589
 #desJointAngles_start.angles[8] = 1.84609
-desJointAngles_start.angles[8] = 1.44609
+desJointAngles_start.angles[8] = 1.14609
 desJointAngles_start.angles[9] =-1.60562
 desJointAngles_start.angles[10]=-1.35433
 desJointAngles_start.angles[11]= 1.58999
@@ -154,6 +154,7 @@ loadComponent("task", "TaskDescriberDoubleArm")
 setActivity("task",0.01,10,ORO_SCHED_OTHER)
 task.loadModel(path_model_urdf, "left_lwr_tool_link","right_lwr_tool_link")
 task.setDOFsize(DOFsize);
+task.setContactTime(5+7+5);
 task.configure()
 
 loadComponent("caux", "ConstrainedAuxiliaries")
@@ -161,6 +162,7 @@ setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
 caux.setTaskSpaceDimension(TaskSpaceDimension);
 caux.setCstrSpaceDimension(CstrSpaceDimension);
+caux.setConstrainedVersionMode(false);
 caux.preparePorts();
 caux.configure()
 
@@ -178,11 +180,12 @@ jointposcontroller.setDesiredJointAngles(desJointAngles_start)
 loadComponent("trajectorygenerator", "TrajectoryGeneratorBoris")
 setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
 trajectorygenerator.setTranslationOnly(translationOnly);
-trajectorygenerator.setWaitTime(5)
+trajectorygenerator.setWaitTime(7)
 trajectorygenerator.setObjectCenter(-0.55,0.0,1.05)
 trajectorygenerator.setObjectSize(0.28)
 trajectorygenerator.preparePorts()
 trajectorygenerator.factor=0.25;
+#trajectorygenerator.factor=0.0;
 trajectorygenerator.configure()
 
 # load PositionController
@@ -210,7 +213,7 @@ setActivity("nullspacecontroller",0.01,31,ORO_SCHED_OTHER)
 nullspacecontroller.setDOFsize(DOFsize);
 nullspacecontroller.setTaskSpaceDimension(TaskSpaceDimension);
 nullspacecontroller.preparePorts();
-nullspacecontroller.setGains(10,0.1);
+nullspacecontroller.setGains(50,1);
 nullspacecontroller.setDesiredAngles(desJointAngles)
 nullspacecontroller.configure()
 
@@ -234,7 +237,7 @@ torquesuperimposer.configure()
 #load torqueTransition
 loadComponent("torqueTransition", "TorqueTransition")
 setActivity("torqueTransition",0.01,30,ORO_SCHED_OTHER)
-torqueTransition.setDOFsizeAndTransitionTime(DOFsize,5.1)
+torqueTransition.setDOFsizeAndTransitionTime(DOFsize,5.0)
 torqueTransition.configure()
 
 # connect PositionController to TorqueSuperimposer
@@ -259,14 +262,15 @@ connect("combiner.out_robotstatus_port", "task.in_robotstatus_port", cp_aux)
 connect("fkin.out_jacobian_port", "task.in_jacobian_port", cp_aux)
 connect("fkin.out_jacobianDot_port", "task.in_jacobianDot_port", cp_aux)
 
-#connect("task.out_jacobianTask_port", "caux.in_jacobianTask_port", cp_aux)
-#connect("task.out_jacobianDotTask_port", "caux.in_jacobianDotTask_port", cp_aux)
-#connect("task.out_jacobianCstr_port", "caux.in_jacobianCstr_port", cp_aux)
-#connect("task.out_jacobianDotCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
-connect("fkin.out_jacobian_port", "caux.in_jacobianTask_port", cp_aux)
-connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotTask_port", cp_aux)
-connect("fkin.out_jacobian_port", "caux.in_jacobianCstr_port", cp_aux)
-connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotCstr_port", cp_aux)
+connect("task.out_jacobianTask_port", "caux.in_jacobianTask_port", cp_aux)
+connect("task.out_jacobianDotTask_port", "caux.in_jacobianDotTask_port", cp_aux)
+connect("task.out_jacobianCstr_port", "caux.in_jacobianCstr_port", cp_aux)
+connect("task.out_jacobianDotCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
+
+#connect("fkin.out_jacobian_port", "caux.in_jacobianTask_port", cp_aux)
+#connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotTask_port", cp_aux)
+#connect("fkin.out_jacobian_port", "caux.in_jacobianCstr_port", cp_aux)
+#connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotCstr_port", cp_aux)
 
 connect("fkin.out_inertia_port", "caux.in_inertia_port", cp_aux)
 
@@ -278,8 +282,8 @@ connect("fkin.out_coriolisAndGravity_port", "forcecontroller.in_h_port", cp_aux)
 ###
 var ConnPolicy cp_aux_positioncontroller;
 # kinematics part
-connect("task.out_jacobianFull_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
-connect("task.out_jacobianDotFull_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
+connect("task.out_jacobianTask_port", "positioncontroller.in_jacobian_port", cp_aux_positioncontroller)
+connect("task.out_jacobianDotTask_port", "positioncontroller.in_jacobianDot_port", cp_aux_positioncontroller)
 
 connect("fkin.out_cartPos_port", "positioncontroller.in_currentTaskSpacePosition_port", cp_aux_positioncontroller)
 connect("fkin.out_cartVel_port", "positioncontroller.in_currentTaskSpaceVelocity_port", cp_aux_positioncontroller)
@@ -292,7 +296,8 @@ connect("fkin.out_coriolisAndGravity_port", "positioncontroller.in_h_port", cp_a
 
 # constrained part
 connect("caux.out_lambdaCstr_port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
-connect("fkin.out_inertia_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+connect("caux.out_MCstr_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
+#connect("fkin.out_inertia_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
 connect("caux.out_P_port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
 connect("caux.out_CCstr_port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
@@ -308,7 +313,7 @@ connect("caux.out_P_port", "forcecontroller.in_p_port", cp_aux_positioncontrolle
 ###
 var ConnPolicy cp_aux_nullspacecontroller;
 # kinematics part
-connect("task.out_jacobianFull_port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
+connect("task.out_jacobianTask_port", "nullspacecontroller.in_jacobian_port", cp_aux_nullspacecontroller)
 
 connect("fkin.out_robotstatus_port", "nullspacecontroller.in_robotstatus_port", cp_aux_nullspacecontroller)
 
@@ -338,6 +343,12 @@ connect("torquesuperimposer.out_torques_port","torqueTransition.in_torquesB_port
 connect("torqueTransition.out_torques_port", "seperator.in_torques_port", cp_torqueTransition)
 connect("seperator.out_torques_port_0", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_torqueTransition)
 connect("seperator.out_torques_port_1", "robot_gazebo.right_full_arm_JointTorqueCtrl", cp_torqueTransition)
+
+#important peer connection for opertaionalCaller
+connectPeers("task","caux")
+connectPeers("task","positioncontroller")
+connectPeers("task","torquesuperimposer")
+connectPeers("task","nullspacecontroller")
 
 robot_gazebo.setControlMode("left_full_arm", "JointTorqueCtrl")
 robot_gazebo.setControlMode("right_full_arm", "JointTorqueCtrl")
@@ -370,6 +381,7 @@ loadService("filereporter", "marshalling")
 connectPeers("filereporter","fkin")
 connectPeers("filereporter","trajectorygenerator")
 connectPeers("filereporter","positioncontroller")
+filereporter.reportPort("fkin", "out_robotstatus_port")
 filereporter.reportPort("fkin", "out_cartPos_port")
 filereporter.reportPort("fkin", "out_cartVel_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")

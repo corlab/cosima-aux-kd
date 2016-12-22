@@ -16,8 +16,6 @@ WrapperKDLBoris::WrapperKDLBoris(std::string const & name) : RTT::TaskContext(na
 
     //other stuff
     portsArePrepared = false;
-    identity33 = Eigen::MatrixXf::Identity(3,3);
-    identity66 = Eigen::MatrixXf::Identity(6,6);
 }
 
 bool WrapperKDLBoris::configureHook() {
@@ -70,20 +68,6 @@ void WrapperKDLBoris::updateHook() {
 
         out_cartAcc_var = out_jacobianDot_var * in_robotstatus_var.velocities; //TODO: add out_jacobian_var * in_robotstatus_var.accelerations
 
-//        out_cartPosTranslation_var = out_cartPos_var.head<6>();
-//        out_cartVelTranslation_var = out_cartVel_var.head<6>();
-//        out_cartAccTranslation_var = out_cartAcc_var.head<6>();
-
-//        out_cartPosOrientation_var = out_cartPos_var.tail<6>();
-//        out_cartVelOrientation_var = out_cartVel_var.tail<6>();
-//        out_cartAccOrientation_var = out_cartAcc_var.tail<6>();
-
-//        out_jacobianTranslation_var = out_jacobian_var.topRows<6>();
-//        out_jacobianDotTranslation_var = out_jacobianDot_var.topRows<6>();
-
-//        out_jacobianOrientation_var = out_jacobian_var.bottomRows<6>();
-//        out_jacobianDotOrientation_var = out_jacobianDot_var.bottomRows<6>();
-
     } else if (in_robotstatus_flow == RTT::NoData){
         out_robotstatus_var.angles.setZero();
         out_robotstatus_var.velocities.setZero();
@@ -95,18 +79,8 @@ void WrapperKDLBoris::updateHook() {
         out_cartPos_var.setZero();
         out_cartVel_var.setZero();
         out_cartAcc_var.setZero();
-        out_cartPosTranslation_var.setZero();
-        out_cartVelTranslation_var.setZero();
-        out_cartAccTranslation_var.setZero();
-        out_cartPosOrientation_var.setZero();
-        out_cartVelOrientation_var.setZero();
-        out_cartAccOrientation_var.setZero();
         out_jacobian_var.setZero();
         out_jacobianDot_var.setZero();
-        out_jacobianTranslation_var.setZero();
-        out_jacobianDotTranslation_var.setZero();
-        out_jacobianOrientation_var.setZero();
-        out_jacobianDotOrientation_var.setZero();
     } else {
         // there should be something really wrong!
     }
@@ -119,18 +93,8 @@ void WrapperKDLBoris::updateHook() {
     out_cartPos_port.write(out_cartPos_var);
     out_cartVel_port.write(out_cartVel_var);
     out_cartAcc_port.write(out_cartAcc_var);
-    out_cartPosTranslation_port.write(out_cartPosTranslation_var);
-    out_cartVelTranslation_port.write(out_cartVelTranslation_var);
-    out_cartAccTranslation_port.write(out_cartAccTranslation_var);
-    out_cartPosOrientation_port.write(out_cartPosOrientation_var);
-    out_cartVelOrientation_port.write(out_cartVelOrientation_var);
-    out_cartAccOrientation_port.write(out_cartAccOrientation_var);
     out_jacobian_port.write(out_jacobian_var);
     out_jacobianDot_port.write(out_jacobianDot_var);
-    out_jacobianTranslation_port.write(out_jacobianTranslation_var);
-    out_jacobianDotTranslation_port.write(out_jacobianDotTranslation_var);
-    out_jacobianOrientation_port.write(out_jacobianOrientation_var);
-    out_jacobianDotOrientation_port.write(out_jacobianDotOrientation_var);
 }
 
 void WrapperKDLBoris::stopHook() {
@@ -238,18 +202,8 @@ void WrapperKDLBoris::preparePorts(){
         ports()->removePort("out_cartPos_port");
         ports()->removePort("out_cartVel_port");
         ports()->removePort("out_cartAcc_port");
-        ports()->removePort("out_cartPosTranslation_port");
-        ports()->removePort("out_cartVelTranslation_port");
-        ports()->removePort("out_cartAccTranslation_port");
-        ports()->removePort("out_cartPosOrientation_port");
-        ports()->removePort("out_cartVelOrientation_port");
-        ports()->removePort("out_cartAccOrientation_port");
         ports()->removePort("out_jacobian_port");
         ports()->removePort("out_jacobianDot_port");
-        ports()->removePort("out_jacobianTranslation_port");
-        ports()->removePort("out_jacobianDotTranslation_port");
-        ports()->removePort("out_jacobianOrientation_port");
-        ports()->removePort("out_jacobianDotOrientation_port");
     }
 
     //prepare input
@@ -315,48 +269,6 @@ void WrapperKDLBoris::preparePorts(){
     out_cartAcc_port.setDataSample(out_cartAcc_var);
     ports()->addPort(out_cartAcc_port);
 
-    out_cartPosTranslation_var = Eigen::VectorXf(6);
-    out_cartPosTranslation_var.setZero();
-    out_cartPosTranslation_port.setName("out_cartPosTranslation_port");
-    out_cartPosTranslation_port.doc("Output port for cartesian position Translation vector");
-    out_cartPosTranslation_port.setDataSample(out_cartPosTranslation_var);
-    ports()->addPort(out_cartPosTranslation_port);
-
-    out_cartVelTranslation_var = Eigen::VectorXf(6);
-    out_cartVelTranslation_var.setZero();
-    out_cartVelTranslation_port.setName("out_cartVelTranslation_port");
-    out_cartVelTranslation_port.doc("Output port for cartesian velocity Translation vector");
-    out_cartVelTranslation_port.setDataSample(out_cartVelTranslation_var);
-    ports()->addPort(out_cartVelTranslation_port);
-
-    out_cartAccTranslation_var = Eigen::VectorXf(6);
-    out_cartAccTranslation_var.setZero();
-    out_cartAccTranslation_port.setName("out_cartAccTranslation_port");
-    out_cartAccTranslation_port.doc("Output port for cartesian acceleration Translation vector");
-    out_cartAccTranslation_port.setDataSample(out_cartAccTranslation_var);
-    ports()->addPort(out_cartAccTranslation_port);
-
-    out_cartPosOrientation_var = Eigen::VectorXf(6);
-    out_cartPosOrientation_var.setZero();
-    out_cartPosOrientation_port.setName("out_cartPosOrientation_port");
-    out_cartPosOrientation_port.doc("Output port for cartesian position Orientation vector");
-    out_cartPosOrientation_port.setDataSample(out_cartPosOrientation_var);
-    ports()->addPort(out_cartPosOrientation_port);
-
-    out_cartVelOrientation_var = Eigen::VectorXf(6);
-    out_cartVelOrientation_var.setZero();
-    out_cartVelOrientation_port.setName("out_cartVelOrientation_port");
-    out_cartVelOrientation_port.doc("Output port for cartesian velocity Orientation vector");
-    out_cartVelOrientation_port.setDataSample(out_cartVelOrientation_var);
-    ports()->addPort(out_cartVelOrientation_port);
-
-    out_cartAccOrientation_var = Eigen::VectorXf(6);
-    out_cartAccOrientation_var.setZero();
-    out_cartAccOrientation_port.setName("out_cartAccOrientation_port");
-    out_cartAccOrientation_port.doc("Output port for cartesian acceleration Orientation vector");
-    out_cartAccOrientation_port.setDataSample(out_cartAccOrientation_var);
-    ports()->addPort(out_cartAccOrientation_port);
-
     out_jacobian_var = Eigen::MatrixXf(12,DOFsize);
     out_jacobian_var.setZero();
     out_jacobian_port.setName("out_jacobian_port");
@@ -370,34 +282,6 @@ void WrapperKDLBoris::preparePorts(){
     out_jacobianDot_port.doc("Output port for jacobianDot matrix");
     out_jacobianDot_port.setDataSample(out_jacobianDot_var);
     ports()->addPort(out_jacobianDot_port);
-
-    out_jacobianTranslation_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianTranslation_var.setZero();
-    out_jacobianTranslation_port.setName("out_jacobianTranslation_port");
-    out_jacobianTranslation_port.doc("Output port for jacobianTranslation matrix");
-    out_jacobianTranslation_port.setDataSample(out_jacobianTranslation_var);
-    ports()->addPort(out_jacobianTranslation_port);
-
-    out_jacobianDotTranslation_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianDotTranslation_var.setZero();
-    out_jacobianDotTranslation_port.setName("out_jacobianDotTranslation_port");
-    out_jacobianDotTranslation_port.doc("Output port for jacobianDotTranslation matrix");
-    out_jacobianDotTranslation_port.setDataSample(out_jacobianDotTranslation_var);
-    ports()->addPort(out_jacobianDotTranslation_port);
-
-    out_jacobianOrientation_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianOrientation_var.setZero();
-    out_jacobianOrientation_port.setName("out_jacobianOrientation_port");
-    out_jacobianOrientation_port.doc("Output port for jacobianOrientation matrix");
-    out_jacobianOrientation_port.setDataSample(out_jacobianOrientation_var);
-    ports()->addPort(out_jacobianOrientation_port);
-
-    out_jacobianDotOrientation_var = Eigen::MatrixXf(6,DOFsize);
-    out_jacobianDotOrientation_var.setZero();
-    out_jacobianDotOrientation_port.setName("out_jacobianDotOrientation_port");
-    out_jacobianDotOrientation_port.doc("Output port for jacobianDotOrientation matrix");
-    out_jacobianDotOrientation_port.setDataSample(out_jacobianDotOrientation_var);
-    ports()->addPort(out_jacobianDotOrientation_port);
 
     portsArePrepared = true;
 }

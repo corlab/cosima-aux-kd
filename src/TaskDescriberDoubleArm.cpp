@@ -1,7 +1,7 @@
 /* Author: Niels Dehio
  * Date:   07 December 2016
  *
- * Description: 
+ * Description:
  */
 
 #include "TaskDescriberDoubleArm.hpp"
@@ -11,10 +11,13 @@
 TaskDescriberDoubleArm::TaskDescriberDoubleArm(std::string const & name) : RTT::TaskContext(name) {
     //prepare operations
     addOperation("setDOFsize", &TaskDescriberDoubleArm::setDOFsize, this).doc("set DOF size");
+    addOperation("setContactTime", &TaskDescriberDoubleArm::setContactTime, this).doc("set ContactTime");
     addOperation("loadModel", &TaskDescriberDoubleArm::loadModel, this).doc("load model");
     addOperation("displayCurrentState", &TaskDescriberDoubleArm::displayCurrentState, this).doc("print current state");
 
     //other stuff
+    contact_time = 0.0;
+    currentMode=false;
     portsArePrepared = false;
 }
 
@@ -30,11 +33,40 @@ bool TaskDescriberDoubleArm::configureHook() {
 
 bool TaskDescriberDoubleArm::startHook() {
     // this method starts the component
+
+    std::string ConstrainedAuxiliaries_string = "caux";
+    std::string PositionController_string = "positioncontroller";
+    std::string TorqueSuperimposer_string = "torquesuperimposer";
+
+    ConstrainedAuxiliaries_ptr = getPeer(ConstrainedAuxiliaries_string);
+    PositionController_ptr = getPeer(PositionController_string);
+    TorqueSuperimposer_ptr = getPeer(TorqueSuperimposer_string);
+
+    setMode_ConstrainedAuxiliaries = ConstrainedAuxiliaries_ptr->getOperation("setConstrainedVersionMode");
+    setMode_PositionController = PositionController_ptr->getOperation("setConstrainedVersionMode");
+    setMode_TorqueSuperimposer = TorqueSuperimposer_ptr->getOperation("setConstrainedVersionMode");
+
+    std::string NullspaceController_string = "nullspacecontroller";
+    NullspaceController_ptr = getPeer(NullspaceController_string);
+    setGains_NullspaceController = NullspaceController_ptr->getOperation("setGains");
     return true;
 }
 
 void TaskDescriberDoubleArm::updateHook() {
     // this is the actual body of a component. it is called on each cycle
+
+    current_time = this->getSimulationTime();
+    time_diff = this->current_time - this->contact_time;
+//    if(time_diff > -2.0 && currentMode==false){
+//        this->setGains_NullspaceController(0,0);
+//    }
+//    if(time_diff > 0.0 && currentMode==false){
+//        currentMode = true;
+//        this->setMode_ConstrainedAuxiliaries(true);
+//        this->setMode_PositionController(true);
+//        this->setMode_TorqueSuperimposer(true);
+//    }
+
     if (in_robotstatus_port.connected()) {
         in_robotstatus_flow = in_robotstatus_port.read(in_robotstatus_var);
     } else {
@@ -159,6 +191,15 @@ void TaskDescriberDoubleArm::setDOFsize(unsigned int DOFsize){
     this->preparePorts();
 }
 
+void TaskDescriberDoubleArm::setContactTime(float contactTime){
+    this->contact_time = contactTime;
+}
+
+double TaskDescriberDoubleArm::getSimulationTime() {
+    return 1E-9
+            * RTT::os::TimeService::ticks2nsecs(
+                    RTT::os::TimeService::Instance()->getTicks());
+}
 
 void TaskDescriberDoubleArm::loadModel(std::string modelname, std::string chain_root_link_name, std::string chain_tip_link_name){
     assert(modelname.length() > 0);

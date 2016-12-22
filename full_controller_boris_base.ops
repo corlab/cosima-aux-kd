@@ -267,6 +267,7 @@ var ConnPolicy cp_torquesuperimposer_robot;
 var ConnPolicy cp_jointposcontroller;
 connect("jointposcontroller.out_torques_port","torqueTransition.in_torquesA_port",cp_jointposcontroller)
 connect("fkin.out_jointFB","jointposcontroller.in_robotstatus_port",cp_jointposcontroller)
+#connect("fkin.out_coriolisAndGravity_port","jointposcontroller.in_coriolisAndGravity_port",cp_jointposcontroller)
 
 #torquetransition
 var ConnPolicy cp_torqueTransition;

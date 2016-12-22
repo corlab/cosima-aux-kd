@@ -102,6 +102,7 @@ setActivity("caux",0.01,10,ORO_SCHED_OTHER)
 caux.setDOFsize(DOFsize);
 caux.setTaskSpaceDimension(TaskSpaceDimension);
 caux.setCstrSpaceDimension(CstrSpaceDimension);
+caux.setConstrainedVersionMode(true);
 caux.preparePorts();
 caux.configure()
 
@@ -109,7 +110,7 @@ caux.configure()
 #load joint position controller
 loadComponent("jointposcontroller","JointPositionCtrl")
 setActivity("jointposcontroller",0.01,30,ORO_SCHED_OTHER)
-jointposcontroller.setDOFsizeAndGains(7,100,3)
+jointposcontroller.setDOFsizeAndGains(DOFsize,100,3)
 jointposcontroller.configure()
 jointposcontroller.setDesiredJointAngles(desJointAngles)
 
@@ -121,7 +122,7 @@ setActivity("trajectorygenerator",0.01,30,ORO_SCHED_OTHER)
 trajectorygenerator.setTranslationOnly(translationOnly);
 trajectorygenerator.setCenter(-0.50,0.3,0.83)
 trajectorygenerator.radius = 0.1
-trajectorygenerator.setWaitTime(5)
+trajectorygenerator.setWaitTime(10)
 trajectorygenerator.preparePorts()
 trajectorygenerator.configure()
 
@@ -174,7 +175,7 @@ torquesuperimposer.configure()
 #load torqueTransition
 loadComponent("torqueTransition", "TorqueTransition")
 setActivity("torqueTransition",0.01,30,ORO_SCHED_OTHER)
-torqueTransition.setDOFsizeAndTransitionTime(7, 1.0)
+torqueTransition.setDOFsizeAndTransitionTime(DOFsize, 10.0)
 torqueTransition.configure()
 
 # connect PositionController to TorqueSuperimposer
@@ -265,6 +266,7 @@ var ConnPolicy cp_torquesuperimposer_robot;
 var ConnPolicy cp_jointposcontroller;
 connect("jointposcontroller.out_torques_port","torqueTransition.in_torquesA_port",cp_jointposcontroller)
 connect("fkin.out_robotstatus_port","jointposcontroller.in_robotstatus_port",cp_jointposcontroller)
+connect("fkin.out_coriolisAndGravity_port","jointposcontroller.in_coriolisAndGravity_port",cp_jointposcontroller)
 
 #torquetransition
 var ConnPolicy cp_torqueTransition;
@@ -301,6 +303,7 @@ loadService("filereporter", "marshalling")
 connectPeers("filereporter","fkin")
 connectPeers("filereporter","trajectorygenerator")
 connectPeers("filereporter","positioncontroller")
+filereporter.reportPort("fkin", "out_robotstatus_port")
 filereporter.reportPort("fkin", "out_cartPos_port")
 filereporter.reportPort("fkin", "out_cartVel_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_port")

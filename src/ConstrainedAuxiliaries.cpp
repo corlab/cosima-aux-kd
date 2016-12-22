@@ -13,10 +13,12 @@ ConstrainedAuxiliaries::ConstrainedAuxiliaries(std::string const & name) : RTT::
     addOperation("setDOFsize", &ConstrainedAuxiliaries::setDOFsize, this).doc("set DOF size");
     addOperation("setTaskSpaceDimension", &ConstrainedAuxiliaries::setTaskSpaceDimension, this).doc("set TaskSpaceDimension");
     addOperation("setCstrSpaceDimension", &ConstrainedAuxiliaries::setCstrSpaceDimension, this).doc("set CstrSpaceDimension");
+    addOperation("setConstrainedVersionMode", &ConstrainedAuxiliaries::setConstrainedVersionMode, this).doc("set constrained version mode");
     addOperation("preparePorts", &ConstrainedAuxiliaries::preparePorts, this).doc("prepare ports");
     addOperation("displayCurrentState", &ConstrainedAuxiliaries::displayCurrentState, this).doc("print current state");
 
     //other stuff
+    this->setConstrainedVersionMode(true);
     portsArePrepared = false;
 }
 
@@ -79,14 +81,13 @@ void ConstrainedAuxiliaries::updateHook() {
         assert(in_jacobianDotTask_var.rows()==TaskSpaceDimension);
         assert(in_jacobianDotTask_var.cols()==DOFsize);
 
-        assert(in_jacobianCstr_var.rows()==TaskSpaceDimension);
+        assert(in_jacobianCstr_var.rows()==CstrSpaceDimension);
         assert(in_jacobianCstr_var.cols()==DOFsize);
 
-        assert(in_jacobianDotCstr_var.rows()==TaskSpaceDimension);
+        assert(in_jacobianDotCstr_var.rows()==CstrSpaceDimension);
         assert(in_jacobianDotCstr_var.cols()==DOFsize);
 
-
-
+        if (useConstrainedVersion){
         //Eq. under Eq. 10
         // DOFsize x CSdim = (DOFsize x CSdim * CSdim x DOFsize) * DOFsize x CSdim
         out_jacobianCstrMPI_var = (in_jacobianCstr_var.transpose() * in_jacobianCstr_var + tmpeyeDOFsizeDOFsize).inverse() * in_jacobianCstr_var.transpose();
@@ -117,6 +118,51 @@ void ConstrainedAuxiliaries::updateHook() {
 //        out_jacobianMPI_var = (in_jacobianTask_var * out_MCstr_var.inverse() * out_P_var * in_jacobianTask_var.transpose() + tmpeyeTSdimTSdim).inverse() * in_jacobianTask_var * out_MCstr_var.inverse() * out_P_var;
         out_jacobianMPI_var = out_lambdaCstr_var * in_jacobianTask_var * out_MCstr_var.inverse() * out_P_var;
 //        RTT::log(RTT::Warning) << "out_jacobianMPI_var\n" << out_jacobianMPI_var << RTT::endlog();
+        }
+        else{
+            out_jacobianCstrMPI_var.setZero();
+            out_P_var.setIdentity();
+            out_MCstr_var = in_inertia_var;
+            out_CCstr_var.setZero();
+            out_lambdaCstr_var = (in_jacobianTask_var * in_inertia_var.inverse() * in_jacobianTask_var.transpose() + tmpeyeTSdimTSdim).inverse();;
+            out_jacobianMPI_var = out_lambdaCstr_var * in_jacobianTask_var * in_jacobianTask_var.inverse();
+
+            Eigen::MatrixXf lambdaCstr_var;
+            Eigen::MatrixXf MCstr_var;
+            Eigen::MatrixXf jacobianCstrMPI_var;
+            Eigen::MatrixXf jacobianMPI_var;
+            Eigen::MatrixXf P_var;
+
+            lambdaCstr_var = Eigen::MatrixXf(TaskSpaceDimension,TaskSpaceDimension);
+            MCstr_var = Eigen::MatrixXf(DOFsize, DOFsize);
+            jacobianCstrMPI_var = Eigen::MatrixXf(DOFsize, 12);
+            jacobianMPI_var = Eigen::MatrixXf(TaskSpaceDimension, DOFsize);
+            P_var = Eigen::MatrixXf(DOFsize, DOFsize);
+
+            // DOFsize x CSdim = (DOFsize x CSdim * CSdim x DOFsize) * DOFsize x CSdim
+            jacobianCstrMPI_var = (in_jacobianTask_var.transpose() * in_jacobianTask_var + tmpeyeDOFsizeDOFsize).inverse() * in_jacobianTask_var.transpose();
+
+            // DOFsize x DOFsize = DOFsize x CSdim * CSdim x DOFsize
+            P_var = identityDOFsizeDOFsize - (jacobianCstrMPI_var * in_jacobianTask_var);
+
+            // DOFsize x DOFsize = DOFsize x DOFsize * DOFsize x DOFsize
+            MCstr_var = P_var * in_inertia_var + identityDOFsizeDOFsize - P_var;
+            MCstr_var = P_var * in_inertia_var + (jacobianCstrMPI_var * in_jacobianTask_var);
+            //MCstr_var = out_inertia_var + (jacobianCstrMPI_var * in_jacobianTask_var);
+
+            // TSdim x TSdim = TSdim x DOFsize * DOFsize x DOFsize * DOFsize x DOFsize * DOFsize x TSdim
+            lambdaCstr_var = (in_jacobianTask_var * MCstr_var.inverse() * P_var * in_jacobianTask_var.transpose() + tmpeyeTSdimTSdim).inverse();
+            //lambdaCstr_var = (in_jacobianTask_var * MCstr_var.inverse()  * in_jacobianTask_var.transpose() + tmpeyeTSdimTSdim).inverse();
+
+            // TSdim x DOFsize = TSdim x TSdim * TSdim x DOFsize * DOFsize x DOFsize * DOFsize x DOFsize
+            out_jacobianMPI_var = lambdaCstr_var * in_jacobianTask_var * MCstr_var.inverse() * P_var;
+            //out_jacobianMPI_var = lambdaCstr_var * in_jacobianTask_var * MCstr_var.inverse();
+
+            //TODO: why does this not work??
+            //lambdaCstr_var = (in_jacobianTask_var * in_inertia_var.inverse() * in_jacobianTask_var.transpose() + tmpeyeTSdimTSdim).inverse();
+            //out_jacobianMPI_var = lambdaCstr_var * in_jacobianTask_var * in_inertia_var.inverse();
+
+        }
 
     } else {
         out_lambdaCstr_var.setZero();
@@ -164,6 +210,10 @@ void ConstrainedAuxiliaries::setTaskSpaceDimension(unsigned int TaskSpaceDimensi
 void ConstrainedAuxiliaries::setCstrSpaceDimension(unsigned int CstrSpaceDimension){
     assert(CstrSpaceDimension > 0);
     this->CstrSpaceDimension = CstrSpaceDimension;
+}
+
+void ConstrainedAuxiliaries::setConstrainedVersionMode(bool useConstrainedVersion){
+    this->useConstrainedVersion = useConstrainedVersion;
 }
 
 void ConstrainedAuxiliaries::preparePorts(){
@@ -265,18 +315,19 @@ void ConstrainedAuxiliaries::preparePorts(){
 
 void ConstrainedAuxiliaries::displayCurrentState() {
     std::cout << "############## ConstrainedAuxiliaries State begin " << std::endl;
-    std::cout << " inertia " << in_inertia_var << std::endl;
-    std::cout << " jacobianTask " << in_jacobianTask_var << std::endl;
-    std::cout << " jacobianDotTask " << in_jacobianDotTask_var << std::endl;
-    std::cout << " jacobianCstr " << in_jacobianCstr_var << std::endl;
-    std::cout << " jacobianDotCstr " << in_jacobianDotCstr_var << std::endl;
+    std::cout << "useConstrainedVersion " << useConstrainedVersion << std::endl;
+    std::cout << "inertia " << in_inertia_var << std::endl;
+    std::cout << "jacobianTask " << in_jacobianTask_var << std::endl;
+    std::cout << "jacobianDotTask " << in_jacobianDotTask_var << std::endl;
+    std::cout << "jacobianCstr " << in_jacobianCstr_var << std::endl;
+    std::cout << "jacobianDotCstr " << in_jacobianDotCstr_var << std::endl;
 
-    std::cout << " lambdaCstr " << out_lambdaCstr_var << std::endl;
-    std::cout << " MCstr " << out_MCstr_var << std::endl;
-    std::cout << " CCstr " << out_CCstr_var << std::endl;
-    std::cout << " jacobianCstrMPI " << out_jacobianCstrMPI_var << std::endl;
-    std::cout << " jacobianMPI " << out_jacobianMPI_var << std::endl;
-    std::cout << " P " << out_P_var << std::endl;
+    std::cout << "lambdaCstr " << out_lambdaCstr_var << std::endl;
+    std::cout << "MCstr " << out_MCstr_var << std::endl;
+    std::cout << "CCstr " << out_CCstr_var << std::endl;
+    std::cout << "jacobianCstrMPI " << out_jacobianCstrMPI_var << std::endl;
+    std::cout << "jacobianMPI " << out_jacobianMPI_var << std::endl;
+    std::cout << "P " << out_P_var << std::endl;
     std::cout << "############## ConstrainedAuxiliaries State end " << std::endl;
 }
 

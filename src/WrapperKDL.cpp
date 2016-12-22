@@ -16,8 +16,6 @@ WrapperKDL::WrapperKDL(std::string const & name) : RTT::TaskContext(name) {
 
     //other stuff
     portsArePrepared = false;
-    identity33 = Eigen::MatrixXf::Identity(3,3);
-    identity66 = Eigen::MatrixXf::Identity(6,6);
 }
 
 bool WrapperKDL::configureHook() {

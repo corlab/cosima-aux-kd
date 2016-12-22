@@ -116,7 +116,6 @@ private:
     Eigen::MatrixXf out_jacobianDotTranslation_var;
     Eigen::MatrixXf out_jacobianOrientation_var;
     Eigen::MatrixXf out_jacobianDotOrientation_var;
-    Eigen::MatrixXf identity66, identity33;
     unsigned int DOFsize;
     bool portsArePrepared;
 

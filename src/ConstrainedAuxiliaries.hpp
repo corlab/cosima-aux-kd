@@ -33,6 +33,7 @@ public:
     void setDOFsize(unsigned int DOFsize);
     void setTaskSpaceDimension(unsigned int TaskSpaceDimension);
     void setCstrSpaceDimension(unsigned int CstrSpaceDimension);
+    void setConstrainedVersionMode(bool useConstrainedVersion);
     void preparePorts();
     void displayCurrentState();
 
@@ -74,6 +75,7 @@ private:
     Eigen::MatrixXf identityDOFsizeDOFsize, identityTSdimTSdim;
     Eigen::MatrixXf tmpeyeDOFsizeDOFsize, tmpeyeTSdimTSdim;
     unsigned int DOFsize, TaskSpaceDimension, CstrSpaceDimension;
+    bool useConstrainedVersion;
     bool portsArePrepared;
 };
 
