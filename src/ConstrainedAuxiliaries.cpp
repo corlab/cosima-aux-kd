@@ -88,9 +88,13 @@ void ConstrainedAuxiliaries::updateHook() {
         assert(in_jacobianDotCstr_var.cols()==DOFsize);
 
         if (useConstrainedVersion){
-        //Eq. under Eq. 10
+        // left pseudo inverse
         // DOFsize x CSdim = (DOFsize x CSdim * CSdim x DOFsize) * DOFsize x CSdim
-        out_jacobianCstrMPI_var = (in_jacobianCstr_var.transpose() * in_jacobianCstr_var + tmpeyeDOFsizeDOFsize).inverse() * in_jacobianCstr_var.transpose();
+        //out_jacobianCstrMPI_var = (in_jacobianCstr_var.transpose() * in_jacobianCstr_var + tmpeyeDOFsizeDOFsize).inverse() * in_jacobianCstr_var.transpose();
+
+        //right pseudo inverse
+        // DOFsize x CSdim = DOFsize x CSdim * (CSdim x DOFsize * DOFsize x CSdim)
+        out_jacobianCstrMPI_var = in_jacobianCstr_var.transpose() * (in_jacobianCstr_var * in_jacobianCstr_var.transpose() + tmpeyeCSdimCSdim).inverse();
 //        RTT::log(RTT::Warning) << "out_jacobianCstrMPI_var\n" << out_jacobianCstrMPI_var << RTT::endlog();
 
         //Eq. under Eq. 10
@@ -210,6 +214,9 @@ void ConstrainedAuxiliaries::setTaskSpaceDimension(unsigned int TaskSpaceDimensi
 void ConstrainedAuxiliaries::setCstrSpaceDimension(unsigned int CstrSpaceDimension){
     assert(CstrSpaceDimension > 0);
     this->CstrSpaceDimension = CstrSpaceDimension;
+
+    identityCSdimCSdim = Eigen::MatrixXf::Identity(CstrSpaceDimension,CstrSpaceDimension);
+    tmpeyeCSdimCSdim = 0.001 * identityCSdimCSdim;
 }
 
 void ConstrainedAuxiliaries::setConstrainedVersionMode(bool useConstrainedVersion){

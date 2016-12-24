@@ -72,8 +72,8 @@ private:
     Eigen::MatrixXf out_jacobianCstrMPI_var;
     Eigen::MatrixXf out_jacobianMPI_var;
     Eigen::MatrixXf out_P_var;
-    Eigen::MatrixXf identityDOFsizeDOFsize, identityTSdimTSdim;
-    Eigen::MatrixXf tmpeyeDOFsizeDOFsize, tmpeyeTSdimTSdim;
+    Eigen::MatrixXf identityDOFsizeDOFsize, identityTSdimTSdim, identityCSdimCSdim;
+    Eigen::MatrixXf tmpeyeDOFsizeDOFsize, tmpeyeTSdimTSdim, tmpeyeCSdimCSdim;
     unsigned int DOFsize, TaskSpaceDimension, CstrSpaceDimension;
     bool useConstrainedVersion;
     bool portsArePrepared;

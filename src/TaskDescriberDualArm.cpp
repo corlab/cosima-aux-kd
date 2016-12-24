@@ -146,6 +146,23 @@ void TaskDescriberDualArm::updateHook() {
         this->castEigenMatrixDtoF(jac_.data, out_jacobianCstr_var);
         this->castEigenMatrixDtoF(jac_dot_.data, out_jacobianDotCstr_var);
 
+        //compute constrained task space position and velocity
+        jnt_to_cart_pos_solver->JntToCart(jntPosConfigPlusJntVelConfig_q.q, cartPosFrame, kdl_chain_.getNrOfSegments());
+        jnt_to_cart_vel_solver->JntToCart(jntPosConfigPlusJntVelConfig_q, cartVelFrame, kdl_chain_.getNrOfSegments());
+
+        out_cartPos_var(0) = cartPosFrame.p.x();
+        out_cartPos_var(1) = cartPosFrame.p.y();
+        out_cartPos_var(2) = cartPosFrame.p.z();
+        out_cartPos_var(3) = cartPosFrame.M.GetRot().x();
+        out_cartPos_var(4) = cartPosFrame.M.GetRot().y();
+        out_cartPos_var(5) = cartPosFrame.M.GetRot().z();
+
+        out_cartVel_var(0) = cartVelFrame.GetTwist().vel.x(); //similar to velFrame.p.v.x();
+        out_cartVel_var(1) = cartVelFrame.GetTwist().vel.y(); //similar to velFrame.p.v.y();
+        out_cartVel_var(2) = cartVelFrame.GetTwist().vel.z(); //similar to velFrame.p.v.z();
+        out_cartVel_var(3) = cartVelFrame.GetTwist().rot.x();
+        out_cartVel_var(4) = cartVelFrame.GetTwist().rot.y();
+        out_cartVel_var(5) = cartVelFrame.GetTwist().rot.z();
 
     } else if ( (in_robotstatus_flow == RTT::NoData) || (in_jacobian_flow == RTT::NoData) || (in_jacobianDot_flow == RTT::NoData) ) {
         out_jacobianFull_var.setZero();
@@ -156,6 +173,9 @@ void TaskDescriberDualArm::updateHook() {
 
         out_jacobianCstr_var.setZero();
         out_jacobianDotCstr_var.setZero();
+
+        out_cartPos_var.setZero();
+        out_cartVel_var.setZero();
 
     } else {
         // there should be something really wrong!
@@ -169,6 +189,9 @@ void TaskDescriberDualArm::updateHook() {
 
     out_jacobianCstr_port.write(out_jacobianCstr_var);
     out_jacobianDotCstr_port.write(out_jacobianDotCstr_var);
+
+    out_cartPos_port.write(out_cartPos_var);
+    out_cartVel_port.write(out_cartVel_var);
 }
 
 void TaskDescriberDualArm::stopHook() {
@@ -229,6 +252,11 @@ void TaskDescriberDualArm::loadModel(std::string modelname, std::string chain_ro
     std::cout << " tree getNrOfSegments " << kdl_tree.getNrOfSegments() << std::endl;
     std::cout << " chain NrOfJoints " << kdl_chain_.getNrOfJoints() << std::endl;
     std::cout << " chain getNrOfSegments " << kdl_chain_.getNrOfSegments() << std::endl;
+
+    cartPosFrame = KDL::Frame();
+    cartVelFrame = KDL::FrameVel();
+    jnt_to_cart_pos_solver.reset(new KDL::ChainFkSolverPos_recursive(kdl_chain_));
+    jnt_to_cart_vel_solver.reset(new KDL::ChainFkSolverVel_recursive(kdl_chain_));
 }
 
 
@@ -246,6 +274,9 @@ void TaskDescriberDualArm::preparePorts(){
 
         ports()->removePort("out_jacobianCstr_port");
         ports()->removePort("out_jacobianDotCstr_port");
+
+        ports()->removePort("out_cartPos_port");
+        ports()->removePort("out_cartVel_port");
     }
 
     //prepare input
@@ -312,6 +343,20 @@ void TaskDescriberDualArm::preparePorts(){
     out_jacobianDotCstr_port.setDataSample(out_jacobianDotCstr_var);
     ports()->addPort(out_jacobianDotCstr_port);
 
+    out_cartPos_var = Eigen::VectorXf(6);
+    out_cartPos_var.setZero();
+    out_cartPos_port.setName("out_cartPos_port");
+    out_cartPos_port.doc("Output port for cartesian position vector");
+    out_cartPos_port.setDataSample(out_cartPos_var);
+    ports()->addPort(out_cartPos_port);
+
+    out_cartVel_var = Eigen::VectorXf(6);
+    out_cartVel_var.setZero();
+    out_cartVel_port.setName("out_cartVel_port");
+    out_cartVel_port.doc("Output port for cartesian velocity vector");
+    out_cartVel_port.setDataSample(out_cartVel_var);
+    ports()->addPort(out_cartVel_port);
+
     portsArePrepared = true;
 }
 
@@ -353,6 +398,9 @@ void TaskDescriberDualArm::displayCurrentState() {
 
     std::cout << " jacobian cstr " << out_jacobianCstr_var << std::endl;
     std::cout << " jacobianDot cstr " << out_jacobianDotCstr_var << std::endl;
+
+    std::cout << " cartPos " << out_cartPos_var << std::endl;
+    std::cout << " cartPos " << out_cartVel_var << std::endl;
     std::cout << "############## TaskDescriberDualArm State end " << std::endl;
 }
 

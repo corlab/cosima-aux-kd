@@ -21,6 +21,8 @@
 #include <kdl/tree.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/chainjnttojacdotsolver.hpp>
+#include <kdl/chainfksolvervel_recursive.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
 
 // BOOST includes
 #include <boost/scoped_ptr.hpp>
@@ -65,6 +67,9 @@ private:
     RTT::OutputPort<Eigen::MatrixXf> out_jacobianCstr_port;
     RTT::OutputPort<Eigen::MatrixXf> out_jacobianDotCstr_port;
 
+    RTT::OutputPort<Eigen::VectorXf> out_cartPos_port;
+    RTT::OutputPort<Eigen::VectorXf> out_cartVel_port;
+
     // Data flow:
     RTT::FlowStatus in_robotstatus_flow;
     RTT::FlowStatus in_jacobian_flow;
@@ -83,6 +88,9 @@ private:
 
     Eigen::MatrixXf out_jacobianCstr_var;
     Eigen::MatrixXf out_jacobianDotCstr_var;
+
+    Eigen::VectorXf out_cartPos_var;
+    Eigen::VectorXf out_cartVel_var;
 
     unsigned int DOFsize;
     float time_diff, current_time, contact_time;
@@ -106,5 +114,9 @@ private:
     KDL::JntArrayVel jntPosConfigPlusJntVelConfig_q;
     KDL::Jacobian jac_;
     KDL::Jacobian jac_dot_;
+    KDL::Frame cartPosFrame;
+    KDL::FrameVel cartVelFrame;
+    boost::scoped_ptr<KDL::ChainFkSolverPos_recursive> jnt_to_cart_pos_solver;
+    boost::scoped_ptr<KDL::ChainFkSolverVel_recursive> jnt_to_cart_vel_solver;
 };
 

@@ -178,6 +178,16 @@ setActivity("torqueTransition",0.01,30,ORO_SCHED_OTHER)
 torqueTransition.setDOFsizeAndTransitionTime(DOFsize, 10.0)
 torqueTransition.configure()
 
+# load Constrained ForceEstimator
+loadComponent("forceestimator", "ForceEstimator")
+setActivity("forceestimator",0.01,31,ORO_SCHED_OTHER)
+forceestimator.setDOFsize(DOFsize);
+forceestimator.setFloatingBaseMode(false);
+forceestimator.setTaskSpaceDimension(TaskSpaceDimension);
+forceestimator.setCstrSpaceDimension(CstrSpaceDimension);
+forceestimator.preparePorts();
+forceestimator.configure()
+
 # connect PositionController to TorqueSuperimposer
 var ConnPolicy cp_pos_sum;
 connect("positioncontroller.out_torques_port", "torquesuperimposer.in_torquesA_port", cp_pos_sum)
@@ -274,6 +284,15 @@ connect("torquesuperimposer.out_torques_port","torqueTransition.in_torquesB_port
 connect("torqueTransition.out_torques_port", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_torquesuperimposer_robot)
 
 
+#forceestimator
+var ConnPolicy cp_forceestimator;
+connect("fkin.out_robotstatus_port","forceestimator.in_robotstatus_port",cp_forceestimator)
+connect("task.out_jacobianCstr_port","forceestimator.in_jacobianCstr_port",cp_forceestimator)
+connect("task.out_jacobianDotCstr_port","forceestimator.in_jacobianDotCstr_port",cp_forceestimator)
+connect("fkin.out_inertia_port","forceestimator.in_inertia_port",cp_forceestimator)
+connect("fkin.out_coriolisAndGravity_port","forceestimator.in_h_port",cp_forceestimator)
+connect("torqueTransition.out_torques_port","forceestimator.in_torques_port",cp_forceestimator)
+
 robot_gazebo.setControlMode("left_full_arm", "JointTorqueCtrl")
 gazebo.toggleDynamicsSimulation(true)
 
@@ -289,8 +308,9 @@ forcecontroller.start()
 torquesuperimposer.start()
 jointposcontroller.start()
 torqueTransition.start()
+forceestimator.start()
 
-#gazebo.stop()
+
 #generate graph file
 import("rtt_dot_service")
 loadService("this", "dot")
@@ -303,6 +323,7 @@ loadService("filereporter", "marshalling")
 connectPeers("filereporter","fkin")
 connectPeers("filereporter","trajectorygenerator")
 connectPeers("filereporter","positioncontroller")
+connectPeers("filereporter","forceestimator")
 filereporter.reportPort("fkin", "out_robotstatus_port")
 filereporter.reportPort("fkin", "out_cartPos_port")
 filereporter.reportPort("fkin", "out_cartVel_port")
@@ -310,6 +331,8 @@ filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_por
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")
 filereporter.reportPort("positioncontroller", "out_force_port")
+filereporter.reportPort("forceestimator", "out_forceA_port")
+filereporter.reportPort("forceestimator", "out_forceB_port")
 filereporter.configure
 filereporter.start
 

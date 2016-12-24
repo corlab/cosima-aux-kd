@@ -45,8 +45,8 @@ var int TaskSpaceDimension = 12;
 var int CstrSpaceDimension = 6;
 var eigen_vector lambda = eigen_vector(6);
 lambda[0] = 0
-lambda[1] = -50
-lambda[2] = 0
+lambda[1] = 0
+lambda[2] =-150
 lambda[3] = 0
 lambda[4] = 0
 lambda[5] = 0
@@ -240,6 +240,16 @@ setActivity("torqueTransition",0.01,30,ORO_SCHED_OTHER)
 torqueTransition.setDOFsizeAndTransitionTime(DOFsize,5.0)
 torqueTransition.configure()
 
+# load Constrained ForceEstimator
+loadComponent("forceestimator", "ForceEstimator")
+setActivity("forceestimator",0.01,31,ORO_SCHED_OTHER)
+forceestimator.setDOFsize(DOFsize);
+forceestimator.setFloatingBaseMode(false);
+forceestimator.setTaskSpaceDimension(TaskSpaceDimension);
+forceestimator.setCstrSpaceDimension(CstrSpaceDimension);
+forceestimator.preparePorts();
+forceestimator.configure()
+
 # connect PositionController to TorqueSuperimposer
 var ConnPolicy cp_pos_sum;
 connect("positioncontroller.out_torques_port", "torquesuperimposer.in_torquesA_port", cp_pos_sum)
@@ -267,11 +277,6 @@ connect("task.out_jacobianDotTask_port", "caux.in_jacobianDotTask_port", cp_aux)
 connect("task.out_jacobianCstr_port", "caux.in_jacobianCstr_port", cp_aux)
 connect("task.out_jacobianDotCstr_port", "caux.in_jacobianDotCstr_port", cp_aux)
 
-#connect("fkin.out_jacobian_port", "caux.in_jacobianTask_port", cp_aux)
-#connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotTask_port", cp_aux)
-#connect("fkin.out_jacobian_port", "caux.in_jacobianCstr_port", cp_aux)
-#connect("fkin.out_jacobianDot_port", "caux.in_jacobianDotCstr_port", cp_aux)
-
 connect("fkin.out_inertia_port", "caux.in_inertia_port", cp_aux)
 
 connect("fkin.out_inertia_port", "forcecontroller.in_inertia_port", cp_aux)
@@ -297,7 +302,6 @@ connect("fkin.out_coriolisAndGravity_port", "positioncontroller.in_h_port", cp_a
 # constrained part
 connect("caux.out_lambdaCstr_port", "positioncontroller.in_constraintLambda_port", cp_aux_positioncontroller)
 connect("caux.out_MCstr_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
-#connect("fkin.out_inertia_port", "positioncontroller.in_constraintM_port", cp_aux_positioncontroller)
 connect("caux.out_P_port", "positioncontroller.in_P_port", cp_aux_positioncontroller)
 connect("caux.out_CCstr_port", "positioncontroller.in_constraintC_port", cp_aux_positioncontroller)
 
@@ -344,6 +348,15 @@ connect("torqueTransition.out_torques_port", "seperator.in_torques_port", cp_tor
 connect("seperator.out_torques_port_0", "robot_gazebo.left_full_arm_JointTorqueCtrl", cp_torqueTransition)
 connect("seperator.out_torques_port_1", "robot_gazebo.right_full_arm_JointTorqueCtrl", cp_torqueTransition)
 
+#forceestimator
+var ConnPolicy cp_forceestimator;
+connect("fkin.out_robotstatus_port","forceestimator.in_robotstatus_port",cp_forceestimator)
+connect("task.out_jacobianCstr_port","forceestimator.in_jacobianCstr_port",cp_forceestimator)
+connect("task.out_jacobianDotCstr_port","forceestimator.in_jacobianDotCstr_port",cp_forceestimator)
+connect("fkin.out_inertia_port","forceestimator.in_inertia_port",cp_forceestimator)
+connect("fkin.out_coriolisAndGravity_port","forceestimator.in_h_port",cp_forceestimator)
+connect("torqueTransition.out_torques_port","forceestimator.in_torques_port",cp_forceestimator)
+
 #important peer connection for opertaionalCaller
 connectPeers("task","caux")
 connectPeers("task","positioncontroller")
@@ -367,6 +380,7 @@ forcecontroller.start()
 torquesuperimposer.start()
 jointposcontroller.start()
 torqueTransition.start()
+forceestimator.start()
 
 
 #generate graph file
@@ -381,6 +395,8 @@ loadService("filereporter", "marshalling")
 connectPeers("filereporter","fkin")
 connectPeers("filereporter","trajectorygenerator")
 connectPeers("filereporter","positioncontroller")
+connectPeers("filereporter","task")
+connectPeers("filereporter","forceestimator")
 filereporter.reportPort("fkin", "out_robotstatus_port")
 filereporter.reportPort("fkin", "out_cartPos_port")
 filereporter.reportPort("fkin", "out_cartVel_port")
@@ -388,6 +404,9 @@ filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpacePosition_por
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceVelocity_port")
 filereporter.reportPort("trajectorygenerator", "out_desiredTaskSpaceAcceleration_port")
 filereporter.reportPort("positioncontroller", "out_force_port")
+filereporter.reportPort("task", "out_cartPos_port")
+filereporter.reportPort("forceestimator", "out_forceA_port")
+filereporter.reportPort("forceestimator", "out_forceB_port")
 filereporter.configure
 filereporter.start
 
