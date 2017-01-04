@@ -72,7 +72,7 @@ include_directories(
     ${orocos_kdl_INCLUDE_DIRS}
 )
 
-orocos_component(${PROJECT_NAME} src/WrapperKDL.cpp src/WrapperKDLBoris.cpp src/FeedbackCombiner.cpp src/TorqueCommandSeperator.cpp src/Auxiliaries.cpp src/ConstrainedAuxiliaries.cpp src/TaskDescriberSingleArm.cpp src/TaskDescriberDualArm.cpp src/TaskDescriberComan.cpp src/forward-kinematics src/KDLParser.cpp src/inverse-dynamics.cpp src/constrained-auxiliaries.cpp)
+orocos_component(${PROJECT_NAME} src/WrapperKDL.cpp src/WrapperKDLBoris.cpp src/FeedbackCombiner.cpp src/TorqueCommandSeperator.cpp src/Auxiliaries.cpp src/ConstrainedAuxiliaries.cpp src/TaskDescriberSingleArm.cpp src/TaskDescriberDualArm.cpp src/forward-kinematics src/KDLParser.cpp src/inverse-dynamics.cpp src/constrained-auxiliaries.cpp)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS RTT_COMPONENT)
 
 add_subdirectory(kdl_parser) # or however you call it
